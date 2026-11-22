@@ -1,0 +1,29 @@
+{% extends 'records/base.html' %}
+{% block content %}
+<h1>読書ダッシュボード</h1>
+<table>
+<tbody>
+<tr><td>合計</td><td class="num">{{ total }} 件</td></tr>
+<tr><td>論文</td><td class="num">{{ papers }} 件</td></tr>
+<tr><td>本</td><td class="num">{{ books }} 件</td></tr>
+<tr><td>今年読んだ数</td><td class="num">{{ this_year }} 件</td></tr>
+<tr><td>今月読んだ数</td><td class="num">{{ this_month }} 件</td></tr>
+<tr><td>評価の平均</td><td class="num">{% if avg_rating %}{{ avg_rating|floatformat:1 }} / 5{% else %}—{% endif %}</td></tr>
+</tbody>
+</table>
+
+<h2>月別の読んだ数（直近12か月）</h2>
+{% for m in monthly %}
+<div class="bar-row"><span class="bar-code" style="width:7.5rem;">{{ m.label }}</span><div class="bar-track"><div class="bar-fill" style="width: {{ m.width|stringformat:'.1f' }}%; background: var(--blue);"></div></div><span class="bar-value">{{ m.count }} 件</span></div>
+{% endfor %}
+
+<h2>年別</h2>
+<table>
+<thead><tr><th>年</th><th class="num">件数</th></tr></thead>
+<tbody>
+{% for y in by_year %}<tr><td>{{ y.read_date__year }}年</td><td class="num">{{ y.c }} 件</td></tr>
+{% empty %}<tr><td colspan="2">読んだ日が記録されたものがありません</td></tr>{% endfor %}
+</tbody>
+</table>
+<p><a href="{% url 'records:reading_list' %}">読書記録の一覧へ</a></p>
+{% endblock %}

@@ -97,3 +97,33 @@ class AttachmentDeleteTest(TestCase):
         resp = self.client.post(f"/attachments/{att.pk}/delete/")
         self.assertEqual(resp.status_code, 302)
         self.assertFalse(Attachment.objects.filter(pk=att.pk).exists())
+
+
+class ReadingFeatureTest(TestCase):
+    def setUp(self):
+        import datetime
+        from .models import Reading
+        self.book = Reading.objects.create(
+            item_type="book", title="テストの本", authors="著者",
+            read_date=datetime.date(2026, 11, 1), rating=4, impression="よかった")
+        self.paper = Reading.objects.create(
+            item_type="paper", title="Test Paper", authors="A",
+            read_date=datetime.date(2026, 10, 1), rating=5)
+
+    def test_filter_by_type(self):
+        resp = self.client.get("/readings/?type=book")
+        self.assertContains(resp, "テストの本")
+        self.assertNotContains(resp, "Test Paper")
+
+    def test_edit_impression(self):
+        resp = self.client.post(f"/readings/{self.book.pk}/edit/", {
+            "item_type": "book", "title": "テストの本", "authors": "著者",
+            "read_date": "2026-11-01", "rating": 4, "impression": "書き直した感想"})
+        self.assertEqual(resp.status_code, 302)
+        self.book.refresh_from_db()
+        self.assertEqual(self.book.impression, "書き直した感想")
+
+    def test_stats(self):
+        resp = self.client.get("/readings/stats/")
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "2 件")

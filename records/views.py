@@ -232,9 +232,70 @@ def note_create(request):
 
 # ---- 読書記録 ----
 
+SORTS = {
+    "-read_date": "読んだ日（新しい順）",
+    "read_date": "読んだ日（古い順）",
+    "-created_at": "登録日（新しい順）",
+    "-rating": "評価（高い順）",
+    "title": "タイトル順",
+}
+
+
 def reading_list(request):
     readings = Reading.objects.all()
-    return render(request, "records/reading_list.html", {"readings": readings})
+    item_type = request.GET.get("type", "")
+    if item_type in ("paper", "book"):
+        readings = readings.filter(item_type=item_type)
+    sort = request.GET.get("sort", "-read_date")
+    if sort not in SORTS:
+        sort = "-read_date"
+    readings = readings.order_by(sort, "-id")
+    return render(request, "records/reading_list.html", {
+        "readings": readings, "item_type": item_type,
+        "sort": sort, "sorts": SORTS})
+
+
+def reading_edit(request, pk):
+    reading = get_object_or_404(Reading, pk=pk)
+    form = ReadingForm(request.POST or None, instance=reading)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "読書記録を更新しました")
+        return redirect("records:reading_list")
+    return render(request, "records/reading_form.html",
+                  {"form": form, "editing": reading})
+
+
+def reading_stats(request):
+    """読書ダッシュボード: 件数・月別推移・評価の平均などをまとめる。"""
+    import datetime as _dt
+    from django.db.models import Avg, Count
+    readings = Reading.objects.all()
+    total = readings.count()
+    papers = readings.filter(item_type="paper").count()
+    books = readings.filter(item_type="book").count()
+    avg_rating = readings.exclude(rating__isnull=True).aggregate(a=Avg("rating"))["a"]
+    today = _dt.date.today()
+    monthly = []
+    max_count = 0
+    for i in range(11, -1, -1):
+        year = today.year + (today.month - 1 - i) // 12
+        month = (today.month - 1 - i) % 12 + 1
+        count = readings.filter(read_date__year=year, read_date__month=month).count()
+        monthly.append({"label": f"{year}年{month}月", "count": count})
+        max_count = max(max_count, count)
+    for m in monthly:
+        m["width"] = (m["count"] / max_count * 100) if max_count else 0
+    by_year = (readings.exclude(read_date__isnull=True)
+               .values("read_date__year").annotate(c=Count("id"))
+               .order_by("-read_date__year"))
+    return render(request, "records/reading_stats.html", {
+        "total": total, "papers": papers, "books": books,
+        "avg_rating": avg_rating, "monthly": monthly, "by_year": by_year,
+        "this_year": readings.filter(read_date__year=today.year).count(),
+        "this_month": readings.filter(
+            read_date__year=today.year, read_date__month=today.month).count(),
+    })
 
 
 def reading_search(request):
