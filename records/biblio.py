@@ -1,8 +1,8 @@
-"""書誌情報の取得。APIキー不要の公開APIを使う。
+"""書誌情報の取得・検索。APIキー不要の公開APIを使う。
 
-- 論文: Crossref (DOIから) / OpenAlex (DOI・タイトル検索の補助)
-- 本: openBD (ISBN、日本の出版物に強い) / Google Books (ISBNの補助)
-取得できない場合は空 dict を返し、手入力にフォールバックする。
+- 論文: OpenAlex（タイトル検索・DOI） / Crossref（DOI）
+- 本: Google Books（タイトル検索・ISBN、表紙画像あり） / openBD（ISBN、日本の出版物に強い）
+取得できない場合は空を返し、手入力にフォールバックする。
 """
 import json
 import urllib.parse
@@ -16,6 +16,42 @@ def _get_json(url):
     req = urllib.request.Request(url, headers=UA)
     with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
         return json.loads(resp.read().decode("utf-8"))
+
+
+# ---- 論文 ----
+
+def _openalex_work(w):
+    authors = []
+    for a in w.get("authorships", []):
+        name = a.get("author", {}).get("display_name", "")
+        if name:
+            authors.append(name)
+    venue = ""
+    loc = w.get("primary_location") or {}
+    if loc.get("source"):
+        venue = loc["source"].get("display_name", "")
+    doi = w.get("doi") or ""
+    if doi.startswith("https://doi.org/"):
+        doi = doi[len("https://doi.org/"):]
+    return {
+        "title": w.get("title", ""),
+        "authors": ", ".join(authors),
+        "year": w.get("publication_year"),
+        "venue": venue,
+        "doi": doi,
+        "url": w.get("id", ""),
+    }
+
+
+def search_papers(query, limit=10):
+    """OpenAlexで論文をタイトル検索し、候補のリストを返す。"""
+    try:
+        url = ("https://api.openalex.org/works?search=" +
+               urllib.parse.quote(query) + f"&per-page={limit}")
+        data = _get_json(url)
+        return [_openalex_work(w) for w in data.get("results", [])]
+    except Exception:
+        return []
 
 
 def lookup_doi(doi):
@@ -47,6 +83,49 @@ def lookup_doi(doi):
         return {}
 
 
+# ---- 本 ----
+
+def _google_book(item):
+    v = item.get("volumeInfo", {})
+    isbn = ""
+    for ident in v.get("industryIdentifiers", []):
+        if ident.get("type") in ("ISBN_13", "ISBN_10"):
+            isbn = ident.get("identifier", "")
+            if ident.get("type") == "ISBN_13":
+                break
+    cover = ""
+    links = v.get("imageLinks", {})
+    if links:
+        cover = links.get("thumbnail") or links.get("smallThumbnail") or ""
+        cover = cover.replace("http://", "https://")
+    year = None
+    if v.get("publishedDate"):
+        try:
+            year = int(str(v["publishedDate"])[:4])
+        except ValueError:
+            year = None
+    return {
+        "title": v.get("title", ""),
+        "authors": ", ".join(v.get("authors", [])),
+        "year": year,
+        "venue": v.get("publisher", ""),
+        "isbn": isbn,
+        "url": v.get("infoLink", ""),
+        "cover_url": cover,
+    }
+
+
+def search_books(query, limit=10):
+    """Google Booksで本をタイトル検索し、候補（表紙画像つき）のリストを返す。"""
+    try:
+        url = ("https://www.googleapis.com/books/v1/volumes?q=" +
+               urllib.parse.quote("intitle:" + query) + f"&maxResults={limit}")
+        data = _get_json(url)
+        return [_google_book(it) for it in data.get("items", [])]
+    except Exception:
+        return []
+
+
 def lookup_isbn(isbn):
     """openBD→Google Books の順でISBNから本の書誌情報を引く。"""
     isbn = isbn.replace("-", "").strip()
@@ -63,24 +142,16 @@ def lookup_isbn(isbn):
                 "year": year,
                 "venue": s.get("publisher", ""),
                 "isbn": isbn,
+                "cover_url": s.get("cover", ""),
             }
     except Exception:
         pass
     try:
-        data = _get_json("https://www.googleapis.com/books/v1/volumes?q=isbn:" + isbn)
+        url = ("https://www.googleapis.com/books/v1/volumes?q=isbn:" + isbn)
+        data = _get_json(url)
         items = data.get("items", [])
         if items:
-            v = items[0].get("volumeInfo", {})
-            year = None
-            if v.get("publishedDate"):
-                year = int(str(v["publishedDate"])[:4])
-            return {
-                "title": v.get("title", ""),
-                "authors": ", ".join(v.get("authors", [])),
-                "year": year,
-                "venue": v.get("publisher", ""),
-                "isbn": isbn,
-            }
+            return _google_book(items[0])
     except Exception:
         pass
     return {}

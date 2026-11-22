@@ -6,13 +6,8 @@ Google Drive へは、この書き出し結果（Markdown + 画像ファイル�
 import shutil
 from pathlib import Path
 
-from .models import Experiment, MetricResult, Note, Reading
+from .models import Experiment, Note, Reading
 
-STAGE_ORDER = [c[0] for c in MetricResult.Stage.choices]
-STAGE_LABEL = dict(MetricResult.Stage.choices)
-CLASS_LABEL = dict(MetricResult.ClassType.choices)
-CORR_LABEL = dict(MetricResult.Correction.choices)
-CORR_ORDER = [c[0] for c in MetricResult.Correction.choices]
 
 
 def _fmt(v):
@@ -20,30 +15,20 @@ def _fmt(v):
 
 
 def metric_table_md(experiment):
+    """評価値をグループごとの表で出す。項目は定義レジストリに従う（可変）。"""
+    groups = {}
+    for v in experiment.values.select_related("definition").all():
+        groups.setdefault(v.definition.group or "その他", []).append(v)
     lines = []
-    by_stage = {}
-    for m in experiment.metrics.all():
-        by_stage.setdefault(m.stage, {})[(m.class_type, m.correction)] = m
-    for stage in STAGE_ORDER:
-        if stage not in by_stage:
-            continue
-        lines.append(f"### {STAGE_LABEL[stage]}")
+    for group, values in groups.items():
+        lines.append(f"### {group}")
         lines.append("")
-        header = "| クラス | " + " | ".join(
-            f"{CORR_LABEL[c]} GZSL | {CORR_LABEL[c]} ZSL" for c in CORR_ORDER) + " |"
-        lines.append(header)
-        lines.append("|" + "---|" * (1 + 2 * len(CORR_ORDER)))
-        for class_type, class_label in MetricResult.ClassType.choices:
-            cells = []
-            for corr in CORR_ORDER:
-                m = by_stage[stage].get((class_type, corr))
-                cells.append(_fmt(m.gzsl) if m else "")
-                cells.append(_fmt(m.zsl) if m else "")
-            lines.append(f"| {class_label} | " + " | ".join(cells) + " |")
+        lines.append("| 評価項目 | 値 | 注記 |")
+        lines.append("|---|---|---|")
+        for v in values:
+            unit = v.definition.unit or ""
+            lines.append(f"| {v.definition.display_label} | {v.value:g}{unit} | {v.note} |")
         lines.append("")
-    lines.append("※ ZSL に calibrated stacking は適用されません。"
-                 "「component fusion + calibrated stacking」列の ZSL は component fusion のみの値です。")
-    lines.append("")
     return "\n".join(lines)
 
 

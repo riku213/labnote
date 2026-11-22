@@ -2,7 +2,7 @@
 
 設計方針:
 - 実験の精度は「学習段階 × クラス区分 × 補正 × 指標(GZSL/ZSL)」の組み合わせで変わるため、
-  固定列にはせず MetricResult として1行ずつ持つ。指標の組み合わせは後から増減できる。
+  固定列にはせず MetricDefinition（定義）＋ MetricValue（値）として持つ。評価項目は実験の進行に合わせて後から追加・変更できる。
 - 補正は「なし / component fusion のみ / component fusion + calibrated stacking」の3値で表す。
   ZSL では calibrated stacking を適用できないことは、値の持ち方（補正の組に対して
   GZSL と ZSL の両方を記録する）と取り込み時の検証で表現する。
@@ -47,46 +47,55 @@ class Experiment(models.Model):
         return [t.strip() for t in self.tags.split(",") if t.strip()]
 
 
-class MetricResult(models.Model):
-    """実験の精度1件。
+class MetricDefinition(models.Model):
+    """評価項目（指標）の定義。項目は固定ではなく、ここに追加していく。
 
-    (学習段階, クラス区分, 補正) の組み合わせごとに GZSL / ZSL を持つ。
-    値が無い組み合わせは行自体を作らない（sparse）。
+    実験の取り込み時に未知のキーが現れたら自動で登録される。
+    表示名・グループ・単位・並び順は後から画面で変更できる。
     """
 
-    class Stage(models.TextChoices):
-        PRETRAIN = "pretrain_casia", "事前学習 (CASIA)"
-        FINETUNE = "finetune_kuzushiji", "ファインチューニング (くずし字)"
-
-    class ClassType(models.TextChoices):
-        KNOWN = "known", "既知クラス"
-        UNKNOWN = "unknown", "未知クラス"
-
-    class Correction(models.TextChoices):
-        NONE = "none", "補正なし"
-        COMPONENT = "component", "component fusion のみ"
-        COMPONENT_CALIBRATED = "component_calibrated", \
-            "component fusion + calibrated stacking"
-
-    experiment = models.ForeignKey(Experiment, on_delete=models.CASCADE,
-                                   related_name="metrics", verbose_name="実験")
-    stage = models.CharField("学習段階", max_length=32, choices=Stage.choices)
-    class_type = models.CharField("クラス区分", max_length=16, choices=ClassType.choices)
-    correction = models.CharField("補正", max_length=32, choices=Correction.choices)
-    gzsl = models.FloatField("GZSL精度(%)", null=True, blank=True)
-    zsl = models.FloatField("ZSL精度(%)", null=True, blank=True)
-    note = models.CharField("注記", max_length=200, blank=True,
-                            help_text="例: CSなし、など値に付随する注記")
+    key = models.CharField("キー", max_length=200, unique=True,
+                           help_text="例: pretrain_casia.unknown.component_calibrated.gzsl / val_loss など")
+    label = models.CharField("表示名", max_length=300, blank=True,
+                             help_text="空ならキーそのまま表示")
+    group = models.CharField("表示グループ", max_length=100, blank=True,
+                             help_text="例: 事前学習 (CASIA)")
+    unit = models.CharField("単位", max_length=16, default="%", blank=True)
+    sort_order = models.IntegerField("並び順", default=0)
+    is_active = models.BooleanField("有効", default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ["stage", "class_type", "correction"]
-        unique_together = ["experiment", "stage", "class_type", "correction"]
-        verbose_name = "指標結果"
-        verbose_name_plural = "指標結果"
+        ordering = ["group", "sort_order", "key"]
+        verbose_name = "評価項目の定義"
+        verbose_name_plural = "評価項目の定義"
 
     def __str__(self):
-        return (f"{self.experiment.code} / {self.get_stage_display()} / "
-                f"{self.get_class_type_display()} / {self.get_correction_display()}")
+        return self.label or self.key
+
+    @property
+    def display_label(self):
+        return self.label or self.key
+
+
+class MetricValue(models.Model):
+    """実験における評価項目1つの値。項目の定義は MetricDefinition 側で可変に持つ。"""
+
+    experiment = models.ForeignKey(Experiment, on_delete=models.CASCADE,
+                                   related_name="values", verbose_name="実験")
+    definition = models.ForeignKey(MetricDefinition, on_delete=models.PROTECT,
+                                   related_name="values", verbose_name="評価項目")
+    value = models.FloatField("値")
+    note = models.CharField("注記", max_length=200, blank=True)
+
+    class Meta:
+        ordering = ["definition__group", "definition__sort_order", "definition__key"]
+        unique_together = ["experiment", "definition"]
+        verbose_name = "評価値"
+        verbose_name_plural = "評価値"
+
+    def __str__(self):
+        return f"{self.experiment.code} / {self.definition.key} = {self.value}"
 
 
 class Note(models.Model):
@@ -134,6 +143,7 @@ class Reading(models.Model):
     doi = models.CharField("DOI", max_length=120, blank=True)
     isbn = models.CharField("ISBN", max_length=32, blank=True)
     url = models.URLField("URL", blank=True)
+    cover_url = models.URLField("表紙画像URL", blank=True)
     read_date = models.DateField("読んだ日", null=True, blank=True)
     rating = models.PositiveSmallIntegerField("評価 (1-5)", null=True, blank=True)
     summary = models.TextField("要約", blank=True)

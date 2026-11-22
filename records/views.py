@@ -2,12 +2,12 @@ import datetime
 
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse
 
 from . import biblio
-from .forms import AttachmentForm, ExperimentForm, ImportForm, NoteForm, ReadingForm
+from .forms import (AttachmentForm, ExperimentForm, ImportForm,
+                    MetricDefinitionForm, NoteForm, ReadingForm)
 from .importer import ImportError_, parse_result_yaml, save_result
-from .models import Experiment, MetricResult, Note, Reading
+from .models import (Attachment, Experiment, MetricDefinition, Note, Reading)
 
 
 def home(request):
@@ -22,22 +22,22 @@ def home(request):
 # ---- 実験 ----
 
 def experiment_list(request):
-    experiments = Experiment.objects.prefetch_related("metrics").all()
+    experiments = Experiment.objects.prefetch_related("values").all()
     return render(request, "records/experiment_list.html",
                   {"experiments": experiments})
 
 
-def _metric_matrix(experiment):
-    """詳細画面用: stage -> class_type -> correction -> MetricResult の辞書。"""
-    matrix = {}
-    for m in experiment.metrics.all():
-        matrix.setdefault(m.stage, {}).setdefault(m.class_type, {})[m.correction] = m
-    return matrix
+def _grouped_values(experiment):
+    """詳細画面用: グループ名 -> [(定義, 値), ...] のリスト（順序つき）。"""
+    groups = {}
+    for v in experiment.values.select_related("definition").all():
+        groups.setdefault(v.definition.group or "その他", []).append(v)
+    return groups
 
 
 def experiment_detail(request, pk):
     experiment = get_object_or_404(
-        Experiment.objects.prefetch_related("metrics", "attachments", "notes"), pk=pk)
+        Experiment.objects.prefetch_related("attachments", "notes"), pk=pk)
     if request.method == "POST":
         form = AttachmentForm(request.POST, request.FILES)
         if form.is_valid():
@@ -50,10 +50,7 @@ def experiment_detail(request, pk):
         form = AttachmentForm()
     context = {
         "experiment": experiment,
-        "matrix": _metric_matrix(experiment),
-        "stages": MetricResult.Stage.choices,
-        "class_types": MetricResult.ClassType.choices,
-        "corrections": MetricResult.Correction.choices,
+        "grouped_values": _grouped_values(experiment),
         "attachment_form": form,
     }
     return render(request, "records/experiment_detail.html", context)
@@ -69,40 +66,71 @@ def experiment_create(request):
 
 
 def experiment_compare(request):
-    """複数実験の指標を横並びで比較する。"""
+    """複数実験の評価値を横並びで比較する。行は評価項目の定義から作る（可変）。"""
     selected_ids = request.GET.getlist("ids")
-    experiments = Experiment.objects.prefetch_related("metrics").all()
+    experiments = Experiment.objects.prefetch_related("values").all()
     selected = [e for e in experiments if str(e.pk) in selected_ids]
     rows = []
     if selected:
-        keys = []
-        for e in selected:
-            for m in e.metrics.all():
-                key = (m.stage, m.class_type, m.correction)
-                if key not in keys:
-                    keys.append(key)
-        stage_labels = dict(MetricResult.Stage.choices)
-        class_labels = dict(MetricResult.ClassType.choices)
-        corr_labels = dict(MetricResult.Correction.choices)
         lookup = {}
+        definitions = {}
         for e in selected:
-            for m in e.metrics.all():
-                lookup[(e.pk, m.stage, m.class_type, m.correction)] = m
-        for (stage, class_type, correction) in keys:
-            for metric_name in ("gzsl", "zsl"):
-                values = []
-                for e in selected:
-                    m = lookup.get((e.pk, stage, class_type, correction))
-                    values.append(getattr(m, metric_name) if m else None)
-                if any(v is not None for v in values):
-                    rows.append({
-                        "label": (f"{stage_labels[stage]} / {class_labels[class_type]} / "
-                                  f"{corr_labels[correction]} / {metric_name.upper()}"),
-                        "values": values,
-                        "best": max((v for v in values if v is not None), default=None),
-                    })
+            for v in e.values.select_related("definition").all():
+                lookup[(e.pk, v.definition_id)] = v.value
+                definitions[v.definition_id] = v.definition
+        ordered = sorted(definitions.values(),
+                         key=lambda d: (d.group, d.sort_order, d.key))
+        for d in ordered:
+            values = [lookup.get((e.pk, d.pk)) for e in selected]
+            if any(v is not None for v in values):
+                rows.append({
+                    "definition": d, "values": values,
+                    "best": max((v for v in values if v is not None), default=None),
+                })
     return render(request, "records/experiment_compare.html", {
         "experiments": experiments, "selected": selected, "rows": rows})
+
+
+def attachment_delete(request, pk):
+    """添付画像の削除。確認画面をはさむ。"""
+    attachment = get_object_or_404(Attachment, pk=pk)
+    back = "records:home"
+    back_pk = None
+    if attachment.experiment_id:
+        back, back_pk = "records:experiment_detail", attachment.experiment_id
+    if request.method == "POST":
+        attachment.image.delete(save=False)
+        attachment.delete()
+        messages.success(request, "添付画像を削除しました")
+        if back_pk:
+            return redirect(back, pk=back_pk)
+        return redirect(back)
+    return render(request, "records/attachment_confirm_delete.html",
+                  {"attachment": attachment})
+
+
+# ---- 評価項目の定義 ----
+
+def definition_list(request):
+    definitions = MetricDefinition.objects.all()
+    form = MetricDefinitionForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "評価項目を追加しました")
+        return redirect("records:definition_list")
+    return render(request, "records/definition_list.html",
+                  {"definitions": definitions, "form": form})
+
+
+def definition_edit(request, pk):
+    definition = get_object_or_404(MetricDefinition, pk=pk)
+    form = MetricDefinitionForm(request.POST or None, instance=definition)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "評価項目を更新しました")
+        return redirect("records:definition_list")
+    return render(request, "records/form.html",
+                  {"form": form, "heading": f"評価項目を編集: {definition.key}"})
 
 
 # ---- YAML取り込み ----
@@ -184,10 +212,32 @@ def reading_list(request):
     return render(request, "records/reading_list.html", {"readings": readings})
 
 
+def reading_search(request):
+    """タイトルで論文・本を検索し、候補から選べる画面。"""
+    item_type = request.GET.get("type", "paper")
+    query = request.GET.get("q", "").strip()
+    results = []
+    if query:
+        if item_type == "book":
+            results = biblio.search_books(query)
+        else:
+            results = biblio.search_papers(query)
+        if not results:
+            messages.warning(request, "候補が見つかりませんでした。キーワードを変えるか、手入力してください")
+    return render(request, "records/reading_search.html", {
+        "item_type": item_type, "query": query, "results": results})
+
+
 def reading_create(request):
     initial = {}
-    doi = request.GET.get("doi", "").strip()
-    isbn = request.GET.get("isbn", "").strip()
+    # 検索結果やDOI/ISBN検索からの引き継ぎ（GETパラメータ）
+    for field in ("item_type", "title", "authors", "year", "venue",
+                  "doi", "isbn", "url", "cover_url"):
+        value = request.GET.get(field, "")
+        if value:
+            initial[field] = value
+    doi = request.GET.get("doi_lookup", "").strip()
+    isbn = request.GET.get("isbn_lookup", "").strip()
     if doi:
         found = biblio.lookup_doi(doi)
         if found:
