@@ -5,10 +5,15 @@
 取得できない場合は空を返し、手入力にフォールバックする。
 """
 import json
+import os
 import urllib.parse
 import urllib.request
 
 TIMEOUT = 10
+
+# 任意のAPIキー（無くても動くが、共有IP等で無償枠を使い切った場合に自分の枠を使える）
+OPENALEX_API_KEY = os.environ.get("OPENALEX_API_KEY", "")
+GOOGLE_BOOKS_API_KEY = os.environ.get("GOOGLE_BOOKS_API_KEY", "")
 UA = {"User-Agent": "labnote (personal research log)"}
 
 
@@ -43,13 +48,46 @@ def _openalex_work(w):
     }
 
 
+def _crossref_work(m):
+    authors = []
+    for a in m.get("author", []):
+        name = " ".join(x for x in [a.get("given", ""), a.get("family", "")] if x)
+        if name:
+            authors.append(name)
+    year = None
+    for key in ("published-print", "published-online", "issued"):
+        parts = m.get(key, {}).get("date-parts", [])
+        if parts and parts[0]:
+            year = parts[0][0]
+            break
+    return {
+        "title": (m.get("title") or [""])[0],
+        "authors": ", ".join(authors),
+        "year": year,
+        "venue": (m.get("container-title") or [""])[0],
+        "doi": m.get("DOI", ""),
+        "url": m.get("URL", ""),
+    }
+
+
 def search_papers(query, limit=10):
-    """OpenAlexで論文をタイトル検索し、候補のリストを返す。"""
+    """論文をタイトル検索し、候補のリストを返す（OpenAlex→Crossrefの順に試す）。"""
     try:
         url = ("https://api.openalex.org/works?search=" +
                urllib.parse.quote(query) + f"&per-page={limit}")
+        if OPENALEX_API_KEY:
+            url += "&api_key=" + urllib.parse.quote(OPENALEX_API_KEY)
         data = _get_json(url)
-        return [_openalex_work(w) for w in data.get("results", [])]
+        results = [_openalex_work(w) for w in data.get("results", [])]
+        if results:
+            return results
+    except Exception:
+        pass
+    try:
+        url = ("https://api.crossref.org/works?query.bibliographic=" +
+               urllib.parse.quote(query) + f"&rows={limit}")
+        data = _get_json(url)
+        return [_crossref_work(m) for m in data.get("message", {}).get("items", [])]
     except Exception:
         return []
 
@@ -116,42 +154,68 @@ def _google_book(item):
 
 
 def search_books(query, limit=10):
-    """Google Booksで本をタイトル検索し、候補（表紙画像つき）のリストを返す。"""
+    """本をタイトル検索し、候補のリストを返す。
+
+    Google Books（表紙画像つき）を優先し、無償枠の上限などで取得できない場合は
+    国立国会図書館サーチ（NDL Search、表紙画像なし）にフォールバックする。
+    """
     try:
         url = ("https://www.googleapis.com/books/v1/volumes?q=" +
                urllib.parse.quote("intitle:" + query) + f"&maxResults={limit}")
+        if GOOGLE_BOOKS_API_KEY:
+            url += "&key=" + urllib.parse.quote(GOOGLE_BOOKS_API_KEY)
         data = _get_json(url)
-        return [_google_book(it) for it in data.get("items", [])]
+        results = [_google_book(it) for it in data.get("items", [])]
+        if results:
+            return results
+    except Exception:
+        pass
+    return _search_books_ndl(query, limit)
+
+
+def _search_books_ndl(query, limit=10):
+    """NDL Search の OpenSearch API でタイトル検索する（表紙画像は返らない）。"""
+    import xml.etree.ElementTree as ET
+    url = ("https://ndlsearch.ndl.go.jp/api/opensearch?title=" +
+           urllib.parse.quote(query) + f"&cnt={limit}")
+    DC = "{http://purl.org/dc/elements/1.1/}"
+    DCT = "{http://purl.org/dc/terms/}"
+    XSI = "{http://www.w3.org/2001/XMLSchema-instance}type"
+    try:
+        req = urllib.request.Request(url, headers=UA)
+        with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
+            xml_text = resp.read().decode("utf-8")
+        root = ET.fromstring(xml_text)
+        results = []
+        for item in root.iter("item"):
+            def first(tag):
+                e = item.find(tag)
+                return (e.text or "") if e is not None else ""
+            def all_texts(tag):
+                return [e.text or "" for e in item.findall(tag)]
+            isbn = ""
+            for ident in item.findall(f"{DC}identifier"):
+                if ident.get(XSI, "").endswith("ISBN"):
+                    isbn = (ident.text or "").replace("-", "")
+                    break
+            year = None
+            issued = first(f"{DCT}issued")
+            if issued:
+                try:
+                    year = int(issued[:4])
+                except ValueError:
+                    year = None
+            title = first(f"{DC}title")
+            if title:
+                results.append({
+                    "title": title,
+                    "authors": ", ".join(all_texts(f"{DC}creator")),
+                    "year": year,
+                    "venue": first(f"{DC}publisher"),
+                    "isbn": isbn,
+                    "url": first("link"),
+                    "cover_url": "",
+                })
+        return results
     except Exception:
         return []
-
-
-def lookup_isbn(isbn):
-    """openBD→Google Books の順でISBNから本の書誌情報を引く。"""
-    isbn = isbn.replace("-", "").strip()
-    try:
-        data = _get_json("https://api.openbd.jp/v1/get?isbn=" + isbn)
-        if data and data[0]:
-            s = data[0].get("summary", {})
-            year = None
-            if s.get("pubdate"):
-                year = int(str(s["pubdate"])[:4])
-            return {
-                "title": s.get("title", ""),
-                "authors": s.get("author", ""),
-                "year": year,
-                "venue": s.get("publisher", ""),
-                "isbn": isbn,
-                "cover_url": s.get("cover", ""),
-            }
-    except Exception:
-        pass
-    try:
-        url = ("https://www.googleapis.com/books/v1/volumes?q=isbn:" + isbn)
-        data = _get_json(url)
-        items = data.get("items", [])
-        if items:
-            return _google_book(items[0])
-    except Exception:
-        pass
-    return {}

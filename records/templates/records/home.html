@@ -1,18 +1,18 @@
 {% extends 'records/base.html' %}
 {% block content %}
-<h1>labnote</h1>
+<h1>研究ノート</h1>
 <h2>最近の実験</h2>
-<ul>
-{% for e in experiments %}<li>{{ e.date }} <a href="{% url 'records:experiment_detail' e.pk %}">{{ e.code }} {{ e.title }}</a></li>
+<ul class="plain">
+{% for e in experiments %}<li>{{ e.date }}　<a href="{% url 'records:experiment_detail' e.pk %}">{{ e.code }} {{ e.title }}</a></li>
 {% empty %}<li>まだ実験が登録されていません</li>{% endfor %}
 </ul>
 <h2>最近のノート</h2>
-<ul>
-{% for n in notes %}<li>{{ n.date }} [{{ n.get_kind_display }}] {{ n.title }}</li>
+<ul class="plain">
+{% for n in notes %}<li>{{ n.date }}　[{{ n.get_kind_display }}] {{ n.title }}</li>
 {% empty %}<li>まだノートがありません</li>{% endfor %}
 </ul>
 <h2>最近の読書記録</h2>
-<ul>
+<ul class="plain">
 {% for r in readings %}<li>[{{ r.get_item_type_display }}] {{ r.title }}</li>
 {% empty %}<li>まだ読書記録がありません</li>{% endfor %}
 </ul>

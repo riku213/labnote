@@ -4,30 +4,92 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}labnote{% endblock %}</title>
+{# デザイン方針: デジタル庁デザインシステム(DADS)の色・余白・44pxタップ領域を参考にし、
+   表は Tufte 流（罫線は最小限、縦罫なし、数値は右揃え＋等幅数字）に寄せた。
+   グラデーション・影・装飾は使わない。 #}
 <style>
-body { font-family: sans-serif; margin: 2rem auto; max-width: 960px; padding: 0 1rem; line-height: 1.6; }
-nav a { margin-right: 1rem; }
-table { border-collapse: collapse; margin: 1rem 0; }
-th, td { border: 1px solid #ccc; padding: 0.3rem 0.6rem; text-align: right; }
-th { background: #f0f0f0; text-align: center; }
-td.label, th.label { text-align: left; }
-.best { font-weight: bold; background: #eaffea; }
-.messages { list-style: none; padding: 0; }
-.messages li { border: 1px solid #999; padding: 0.4rem 0.8rem; margin: 0.3rem 0; }
-pre { white-space: pre-wrap; background: #fafafa; padding: 0.8rem; }
-img.att { max-width: 100%; }
+:root {
+  --ink: #1a1a1c; --ink-2: #44464a; --line: #d9d9da; --line-soft: #ececec;
+  --blue: #0017c1; --blue-dark: #001078; --red: #b3261e; --bg-soft: #f5f5f4;
+}
+* { box-sizing: border-box; }
+body { margin: 0; color: var(--ink); background: #fff;
+  font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Noto Sans JP", sans-serif;
+  line-height: 1.8; font-size: 16px; }
+a { color: var(--blue); text-underline-offset: 3px; }
+a:hover { color: var(--blue-dark); }
+header.site { border-bottom: 1px solid var(--ink); }
+header.site .inner { max-width: 1024px; margin: 0 auto; padding: 0.9rem 1rem 0.7rem;
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.4rem 1.6rem; }
+.site-title { font-size: 1.35rem; font-weight: 700; letter-spacing: 0.04em; }
+.site-title a { color: var(--ink); text-decoration: none; }
+nav.main a { color: var(--ink-2); text-decoration: none; margin-right: 1.1rem; font-size: 0.95rem; }
+nav.main a:hover { color: var(--blue); text-decoration: underline; text-underline-offset: 3px; }
+main { max-width: 1024px; margin: 0 auto; padding: 1.6rem 1rem 4rem; }
+h1 { font-size: 1.6rem; line-height: 1.4; margin: 0.4rem 0 1rem; }
+h2 { font-size: 1.2rem; margin: 2.2rem 0 0.6rem; padding-bottom: 0.25rem; border-bottom: 1px solid var(--ink); }
+h3 { font-size: 1.05rem; margin: 1.6rem 0 0.4rem; }
+p.lead { color: var(--ink-2); }
+table { border-collapse: collapse; margin: 0.8rem 0 1.4rem; width: 100%;
+  border-top: 2px solid var(--ink); border-bottom: 1px solid var(--ink); }
+th, td { padding: 0.45rem 0.7rem; text-align: left; vertical-align: top; }
+thead th, tr.head th { border-bottom: 1px solid var(--ink); font-weight: 700; }
+tbody tr, tr.row { border-bottom: 1px solid var(--line-soft); }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+td.best { font-weight: 700; }
+.note-cell { color: var(--ink-2); font-size: 0.9rem; }
+ul.plain { list-style: none; padding: 0; margin: 0.6rem 0; }
+ul.plain li { padding: 0.55rem 0; border-bottom: 1px solid var(--line-soft); }
+.meta { color: var(--ink-2); font-size: 0.92rem; }
+.btn { display: inline-block; background: var(--blue); color: #fff; border: 1px solid var(--blue);
+  padding: 0.55rem 1.2rem; border-radius: 4px; font-size: 1rem; cursor: pointer;
+  text-decoration: none; min-height: 44px; line-height: 1.5; }
+.btn:hover { background: var(--blue-dark); color: #fff; }
+.btn.secondary { background: #fff; color: var(--blue); }
+.btn.secondary:hover { background: #eef1ff; }
+.btn.danger { background: var(--red); border-color: var(--red); }
+.btn.small { padding: 0.25rem 0.8rem; min-height: 36px; font-size: 0.9rem; }
+form p { margin: 0.9rem 0; }
+label { font-weight: 700; font-size: 0.95rem; }
+input[type=text], input[type=number], input[type=date], input[type=url],
+input[type=file], select, textarea {
+  display: block; width: 100%; max-width: 42rem; margin-top: 0.3rem;
+  padding: 0.55rem 0.7rem; border: 1px solid #767676; border-radius: 4px;
+  font: inherit; background: #fff; }
+input:focus, select:focus, textarea:focus { outline: 2px solid var(--blue); outline-offset: 1px; }
+.helptext { color: var(--ink-2); font-size: 0.88rem; }
+.messages { list-style: none; padding: 0; margin: 0 0 1.2rem; }
+.messages li { background: var(--bg-soft); border-left: 4px solid var(--ink);
+  padding: 0.6rem 0.9rem; margin: 0.4rem 0; }
+.messages li.error { border-left-color: var(--red); }
+.messages li.warning { border-left-color: #b26a00; }
+pre.body { white-space: pre-wrap; font: inherit; background: none; padding: 0; margin: 0.4rem 0 1rem; }
+figure { margin: 1rem 0; }
+figure img.att { max-width: 100%; border: 1px solid var(--line); }
+figcaption { color: var(--ink-2); font-size: 0.92rem; margin-top: 0.3rem; }
+.candidate { display: flex; gap: 1rem; padding: 0.9rem 0; border-bottom: 1px solid var(--line-soft); }
+.candidate img.cover { width: 80px; height: auto; align-self: flex-start; border: 1px solid var(--line); }
+.candidate .info { flex: 1; }
+footer.site { border-top: 1px solid var(--line); color: var(--ink-2); font-size: 0.88rem; }
+footer.site .inner { max-width: 1024px; margin: 0 auto; padding: 1rem; }
 </style>
 </head>
 <body>
-<nav>
-<a href="{% url 'records:home' %}">ホーム</a>
+<header class="site"><div class="inner">
+<span class="site-title"><a href="{% url 'records:home' %}">labnote</a></span>
+<nav class="main">
 <a href="{% url 'records:experiment_list' %}">実験</a>
-<a href="{% url 'records:experiment_compare' %}">実験を比較</a>
+<a href="{% url 'records:experiment_compare' %}">比較</a>
 <a href="{% url 'records:import_yaml' %}">YAML取り込み</a>
+<a href="{% url 'records:definition_list' %}">評価項目</a>
 <a href="{% url 'records:note_list' %}">ノート</a>
 <a href="{% url 'records:reading_list' %}">読書記録</a>
 </nav>
-{% if messages %}<ul class="messages">{% for m in messages %}<li>{{ m }}</li>{% endfor %}</ul>{% endif %}
+</div></header>
+<main>
+{% if messages %}<ul class="messages">{% for m in messages %}<li class="{{ m.tags }}">{{ m }}</li>{% endfor %}</ul>{% endif %}
 {% block content %}{% endblock %}
+</main>
+<footer class="site"><div class="inner">labnote — 研究の実験管理と記録</div></footer>
 </body>
 </html>

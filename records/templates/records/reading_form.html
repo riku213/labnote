@@ -1,12 +1,15 @@
 {% extends 'records/base.html' %}
 {% block content %}
 <h1>読書記録を追加</h1>
+<p class="lead">タイトルから探す場合は <a href="{% url 'records:reading_search' %}">タイトル検索</a> が便利です。DOI・ISBNが分かっている場合はこちらでも引けます。</p>
 <form method="get">
-<p>DOIから論文を検索: <input type="text" name="doi" size="40" placeholder="10.xxxx/xxxxx"> <button type="submit">書誌を取得</button></p>
-<p>ISBNから本を検索: <input type="text" name="isbn" size="20" placeholder="978-4-..."> <button type="submit">書誌を取得</button></p>
+<p><label>DOIから論文を引く <input type="text" name="doi_lookup" placeholder="10.xxxx/xxxxx"></label>
+<button class="btn small secondary" type="submit">書誌を取得</button></p>
+<p><label>ISBNから本を引く <input type="text" name="isbn_lookup" placeholder="978-4-..."></label>
+<button class="btn small secondary" type="submit">書誌を取得</button></p>
 </form>
 <form method="post">
 {% csrf_token %}{{ form.as_p }}
-<button type="submit">保存</button>
+<button class="btn" type="submit">保存</button>
 </form>
 {% endblock %}

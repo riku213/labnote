@@ -1,0 +1,29 @@
+{% extends 'records/base.html' %}
+{% load records_extras %}
+{% block content %}
+<h1>タイトルで検索して追加</h1>
+<form method="get">
+<label>種別
+<select name="type" style="display:inline-block; width:auto;">
+<option value="paper" {% if item_type == 'paper' %}selected{% endif %}>論文（OpenAlex）</option>
+<option value="book" {% if item_type == 'book' %}selected{% endif %}>本（Google Books）</option>
+</select></label>
+<label>タイトル
+<input type="text" name="q" value="{{ query }}" style="display:inline-block; width:60%;"></label>
+<button class="btn" type="submit">検索</button>
+</form>
+{% if query %}
+<h2>候補</h2>
+{% for r in results %}
+<div class="candidate">
+{% if r.cover_url %}<img class="cover" src="{{ r.cover_url }}" alt="表紙">{% endif %}
+<div class="info">
+<strong>{{ r.title }}</strong>
+<p class="meta">{{ r.authors }}{% if r.year %}（{{ r.year }}）{% endif %} {{ r.venue }}
+{% if r.doi %} ／ DOI: {{ r.doi }}{% endif %}{% if r.isbn %} ／ ISBN: {{ r.isbn }}{% endif %}</p>
+<p><a class="btn small secondary" href="{% url 'records:reading_create' %}?item_type={{ item_type }}&title={{ r.title|urlencode }}&authors={{ r.authors|urlencode }}&year={{ r.year|default:'' }}&venue={{ r.venue|urlencode }}&doi={{ r.doi|default:''|urlencode }}&isbn={{ r.isbn|default:''|urlencode }}&url={{ r.url|default:''|urlencode }}&cover_url={{ r.cover_url|default:''|urlencode }}">この{{ item_type|yesno:'論文,本' }}で登録する</a></p>
+</div>
+</div>
+{% empty %}<p>候補が表示されませんでした</p>{% endfor %}
+{% endif %}
+{% endblock %}

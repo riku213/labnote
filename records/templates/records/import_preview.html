@@ -3,15 +3,16 @@
 <h1>取り込み内容の確認</h1>
 <p>実験: {{ data.experiment.code }} {{ data.experiment.title }}（{{ data.experiment.date }}）</p>
 <table>
-<tr><th class="label">段階</th><th class="label">クラス</th><th class="label">補正</th><th>GZSL</th><th>ZSL</th><th class="label">注記</th></tr>
-{% for r in data.results %}
-<tr><td class="label">{{ r.stage }}</td><td class="label">{{ r.class_type }}</td><td class="label">{{ r.correction }}</td>
-<td>{{ r.gzsl }}</td><td>{{ r.zsl }}</td><td class="label">{{ r.note }}</td></tr>
+<thead><tr><th>評価項目キー</th><th class="num">値</th><th>注記</th></tr></thead>
+<tbody>
+{% for m in data.metrics %}
+<tr><td>{{ m.key }}</td><td class="num">{{ m.value }}</td><td class="note-cell">{{ m.note }}</td></tr>
 {% endfor %}
+</tbody>
 </table>
-<p>同じ実験IDが既にある場合は、その実験を更新し、指標は入れ替えます。</p>
+<p class="meta">未知のキーは評価項目として自動登録されます。同じ実験IDが既にある場合は、その実験を更新し、評価値は入れ替えます。</p>
 <form method="post" action="{% url 'records:import_confirm' %}">
 {% csrf_token %}
-<button type="submit">この内容で保存</button>
+<button class="btn" type="submit">この内容で保存</button>
 </form>
 {% endblock %}

@@ -1,13 +1,15 @@
 {% extends 'records/base.html' %}
 {% block content %}
 <h1>ノート</h1>
-<p><a href="{% url 'records:note_create' %}">ノートを書く</a></p>
+<p><a class="btn secondary" href="{% url 'records:note_create' %}">ノートを書く</a></p>
 <form method="get">
-<select name="kind"><option value="">すべての種類</option>
+<label>種類で絞り込む
+<select name="kind" style="display:inline-block; width:auto;"><option value="">すべての種類</option>
 {% for v, l in kinds %}<option value="{{ v }}" {% if v == kind %}selected{% endif %}>{{ l }}</option>{% endfor %}
-</select><button type="submit">絞り込む</button>
+</select></label>
+<button class="btn small secondary" type="submit">絞り込む</button>
 </form>
 {% for n in notes %}
-<article><h3>{{ n.date }} [{{ n.get_kind_display }}] {{ n.title }}</h3><pre>{{ n.body }}</pre></article>
+<article><h3>{{ n.date }}　[{{ n.get_kind_display }}] {{ n.title }}</h3><pre class="body">{{ n.body }}</pre></article>
 {% empty %}<p>まだノートがありません</p>{% endfor %}
 {% endblock %}

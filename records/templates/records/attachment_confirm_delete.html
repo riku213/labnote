@@ -1,0 +1,11 @@
+{% extends 'records/base.html' %}
+{% block content %}
+<h1>添付画像の削除</h1>
+<p>この画像を削除します。元に戻せません。</p>
+<figure><img class="att" src="{{ attachment.image.url }}" alt="{{ attachment.caption }}">
+<figcaption>{{ attachment.caption }}</figcaption></figure>
+<form method="post">
+{% csrf_token %}
+<button class="btn danger" type="submit">削除する</button>
+</form>
+{% endblock %}

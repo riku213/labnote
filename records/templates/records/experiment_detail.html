@@ -1,55 +1,54 @@
 {% extends 'records/base.html' %}
-{% load records_extras %}
 {% block content %}
 <h1>{{ experiment.code }} {{ experiment.title }}</h1>
-<p>{{ experiment.date }}{% if experiment.git_commit %} / commit: {{ experiment.git_commit }}{% endif %}
-{% if experiment.checkpoint %} / checkpoint: {{ experiment.checkpoint }}{% endif %}</p>
-{% if experiment.tags %}<p>タグ: {{ experiment.tags }}</p>{% endif %}
+<p class="meta">{{ experiment.date }}
+{% if experiment.git_commit %} ／ commit: {{ experiment.git_commit }}{% endif %}
+{% if experiment.checkpoint %} ／ checkpoint: {{ experiment.checkpoint }}{% endif %}
+{% if experiment.tags %} ／ タグ: {{ experiment.tags }}{% endif %}</p>
 
-<h2>精度</h2>
-{% for stage_value, stage_label in stages %}
-<h3>{{ stage_label }}</h3>
+<h2>評価</h2>
+{% for group, values in grouped_values.items %}
+<h3>{{ group }}</h3>
 <table>
-<tr><th class="label">クラス</th>{% for cv, cl in corrections %}<th colspan="2">{{ cl }}</th>{% endfor %}</tr>
-<tr><th></th>{% for cv, cl in corrections %}<th>GZSL</th><th>ZSL</th>{% endfor %}</tr>
-{% for kv, kl in class_types %}
-<tr><td class="label">{{ kl }}</td>
-{% for cv, cl in corrections %}
-{% with m=matrix|get_item:stage_value|get_item:kv|get_item:cv %}
-<td>{% if m and m.gzsl is not None %}{{ m.gzsl }}{% endif %}</td>
-<td>{% if m and m.zsl is not None %}{{ m.zsl }}{% endif %}</td>
-{% endwith %}
+<thead><tr><th>評価項目</th><th class="num">値</th><th>注記</th></tr></thead>
+<tbody>
+{% for v in values %}
+<tr><td>{{ v.definition.display_label }}</td>
+<td class="num">{{ v.value|floatformat:"-2" }}{{ v.definition.unit }}</td>
+<td class="note-cell">{{ v.note }}</td></tr>
 {% endfor %}
-</tr>
-{% endfor %}
+</tbody>
 </table>
-{% endfor %}
-<p>注: ZSL に calibrated stacking は適用されません。「component fusion + calibrated stacking」列の ZSL は component fusion のみ適用した値です。</p>
+{% empty %}<p>評価値がまだ登録されていません</p>{% endfor %}
+<p class="meta">評価項目は固定ではありません。<a href="{% url 'records:definition_list' %}">評価項目の管理</a>から追加・変更できます。ZSL に calibrated stacking は適用されません（「component fusion + calibrated stacking」の ZSL は component fusion のみの値です）。</p>
 
 {% if experiment.conditions %}
 <h2>実験条件</h2>
-<table>{% for k, v in experiment.conditions.items %}<tr><td class="label">{{ k }}</td><td class="label">{{ v }}</td></tr>{% endfor %}</table>
+<table><tbody>{% for k, v in experiment.conditions.items %}<tr><td>{{ k }}</td><td>{{ v }}</td></tr>{% endfor %}</tbody></table>
 {% endif %}
 {% if experiment.params %}
 <h2>学習パラメータ</h2>
-<table>{% for k, v in experiment.params.items %}<tr><td class="label">{{ k }}</td><td class="label">{{ v }}</td></tr>{% endfor %}</table>
+<table><tbody>{% for k, v in experiment.params.items %}<tr><td>{{ k }}</td><td>{{ v }}</td></tr>{% endfor %}</tbody></table>
 {% endif %}
-{% if experiment.background %}<h2>背景・問題意識</h2><pre>{{ experiment.background }}</pre>{% endif %}
-{% if experiment.changes %}<h2>変更点</h2><pre>{{ experiment.changes }}</pre>{% endif %}
-{% if experiment.discussion %}<h2>結果の考察</h2><pre>{{ experiment.discussion }}</pre>{% endif %}
-{% if experiment.memo %}<h2>メモ</h2><pre>{{ experiment.memo }}</pre>{% endif %}
+{% if experiment.background %}<h2>背景・問題意識</h2><pre class="body">{{ experiment.background }}</pre>{% endif %}
+{% if experiment.changes %}<h2>変更点</h2><pre class="body">{{ experiment.changes }}</pre>{% endif %}
+{% if experiment.discussion %}<h2>結果の考察</h2><pre class="body">{{ experiment.discussion }}</pre>{% endif %}
+{% if experiment.memo %}<h2>メモ</h2><pre class="body">{{ experiment.memo }}</pre>{% endif %}
 
 <h2>添付画像</h2>
 {% for a in experiment.attachments.all %}
-<figure><img class="att" src="{{ a.image.url }}" alt="{{ a.caption }}"><figcaption>{{ a.caption }}</figcaption></figure>
+<figure>
+<img class="att" src="{{ a.image.url }}" alt="{{ a.caption }}">
+<figcaption>{{ a.caption }}　<a href="{% url 'records:attachment_delete' a.pk %}">この画像を削除</a></figcaption>
+</figure>
 {% empty %}<p>添付画像はまだありません</p>{% endfor %}
 <form method="post" enctype="multipart/form-data">
 {% csrf_token %}{{ attachment_form.as_p }}
-<button type="submit">画像を添付</button>
+<button class="btn" type="submit">画像を添付</button>
 </form>
 
 {% if experiment.notes.all %}
 <h2>関連ノート</h2>
-<ul>{% for n in experiment.notes.all %}<li>{{ n.date }} {{ n.title }}</li>{% endfor %}</ul>
+<ul class="plain">{% for n in experiment.notes.all %}<li>{{ n.date }}　{{ n.title }}</li>{% endfor %}</ul>
 {% endif %}
 {% endblock %}
