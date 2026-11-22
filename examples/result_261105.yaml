@@ -1,0 +1,57 @@
+# 既存記録（11/05 補助ヘッド タブ＋タスク整理タブの概要表）をもとに作成。
+# 注意: 11/05タブの文章では、既知クラスの「400次元コードの精度 71.23%」
+# 「Component Fusion適用後 81.20%」について GZSL/ZSL の区別が明記されていない。
+# ここでは文脈（直後にGZSLの流れで calibrated stacking 適用後 75.77% と続く）から
+# GZSL として解釈し、note にその旨を残した。違っていれば数値を移してください。
+experiment:
+  code: "261105"
+  title: "補助ヘッド（bag-of-component）+ calibrated stacking"
+  date: 2026-11-05
+  background: "現在の損失（全クラスCE＋コードビットBCE）では、漢字コードを丸暗記している可能性が高い。構造と部首をそれぞれ教えていないため、ViTの出力に補助ヘッドを追加して構造理解を強制する。また推論時に未知クラスの候補の上位に既知クラスばかりが来る問題への対処として calibrated stacking を採用。あわせてCEから未知クラスを除外し、モデル選択指標を未知クラスのバリデーションに変更した。"
+  changes: "ViTの出力に補助ヘッド（bag-of-component）を追加／calibrated stacking を実装／CEから未知クラスを除外／early stopping を未知のvallossで評価"
+  discussion: "未知クラスで、推測結果が既知クラスになる確率は87.2%だった。推測順から既知クラスを除くと精度が7.9%から15.8%に上がり、上位5位に入る確率は25.2%。"
+results:
+  # 事前学習(CASIA) は前回（261101）と同じモデルの値が概要表に引き継がれている
+  - stage: pretrain_casia
+    class_type: unknown
+    correction: none
+    gzsl: 37.42
+    note: "概要表の値（261101からの引き継ぎ）"
+  - stage: pretrain_casia
+    class_type: known
+    correction: none
+    gzsl: 95.13
+    note: "概要表に「CSなし」の注記あり（261101からの引き継ぎ）"
+  # ファインチューニング(くずし字) 既知クラス
+  - stage: finetune_kuzushiji
+    class_type: known
+    correction: none
+    gzsl: 71.23
+    note: "11/05タブ『400次元コードの精度』。GZSL/ZSLの区別が原文に明記なく、GZSLとして解釈"
+  - stage: finetune_kuzushiji
+    class_type: known
+    correction: component
+    gzsl: 81.20
+    note: "11/05タブ『Component Fusion適用後』。同上、GZSLとして解釈"
+  - stage: finetune_kuzushiji
+    class_type: known
+    correction: component_calibrated
+    gzsl: 75.77
+    note: "概要表の既知GZSLと一致"
+  # ファインチューニング(くずし字) 未知クラス
+  - stage: finetune_kuzushiji
+    class_type: unknown
+    correction: none
+    gzsl: 22.09
+    zsl: 29.38
+    note: "11/05タブ『400次元コードの精度』と『ZSL の場合』"
+  - stage: finetune_kuzushiji
+    class_type: unknown
+    correction: component
+    zsl: 35.69
+    note: "11/05タブ『Component Fusion 適用後のZSL』。概要表の未知ZSLと一致"
+  - stage: finetune_kuzushiji
+    class_type: unknown
+    correction: component_calibrated
+    gzsl: 34.02
+    note: "概要表の未知GZSLと一致。ZSLは calibrated stacking を適用しないため component の行を参照"
