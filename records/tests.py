@@ -168,3 +168,19 @@ class ThemeTest(TestCase):
         self.client.cookies.load({"labnote_theme": "bogus"})
         resp = self.client.get("/")
         self.assertContains(resp, 'data-theme="standard"')
+
+
+class MoreThemesAndDateTest(TestCase):
+    def test_all_themes_apply(self):
+        for theme in ("standard", "material", "apple", "github", "dark",
+                      "dracula", "solarized", "washi", "terminal", "newspaper"):
+            self.client.post("/settings/", {"theme": theme})
+            resp = self.client.get("/")
+            self.assertContains(resp, f'data-theme="{theme}"')
+
+    def test_date_defaults_to_today(self):
+        import datetime
+        today = datetime.date.today().isoformat()
+        self.assertContains(self.client.get("/experiments/new/"), f'value="{today}"')
+        self.assertContains(self.client.get("/readings/new/"), f'value="{today}"')
+        self.assertContains(self.client.get("/notes/new/"), f'value="{today}"')

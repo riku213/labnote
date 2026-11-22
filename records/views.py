@@ -14,6 +14,13 @@ THEME_INFO = [
     ("standard", "スタンダード", "今までのデザイン。デジタル庁デザインシステム（DADS）と Tufte 流の表組みを参考にした、装飾のない研究ノート風。"),
     ("material", "Material（Google）", "Google の Material Design 3 風。紫系のテーマカラー、大きな角丸、ピル型ボタン、面の色調で階層を表す。"),
     ("apple", "Apple", "Apple の Human Interface Guidelines 風。半透明でぼかしの効いたヘッダー、柔らかい影、大きな角丸、システムフォント。"),
+    ("github", "GitHub（Primer）", "GitHub のデザインシステム Primer 風。グレーのキャンバスに白いカード、青リンク（#0969da）、控えめな境界線で情報密度を保つ。"),
+    ("dark", "ダーク", "標準デザインのダーク版。暗いグレー基調で、夜間の作業でも目に優しい。"),
+    ("dracula", "Dracula", "エディタで人気のダークテーマ Dracula の公式パレット（背景 #282a36、紫 #bd93f9、ピンク #ff79c6）。"),
+    ("solarized", "Solarized", "Ethan Schoonover の Solarized（ライト）。生成り色の背景（base3 #fdf6e3）に青（#268bd2）の、目に優しい低コントラスト配色。"),
+    ("washi", "和風", "生成り色の和紙のような背景に、明朝体の見出しと朱色のアクセント。落ち着いた和の雰囲気。"),
+    ("terminal", "ターミナル", "黒背景に緑の等幅フォント。端末・コンソール風のテーマ。"),
+    ("newspaper", "新聞", "セリフ体（明朝）中心の新聞・学術誌風。白黒基調に二重罫のヘッダー、差し色は赤。"),
 ]
 
 
@@ -94,7 +101,8 @@ def experiment_detail(request, pk):
 
 
 def experiment_create(request):
-    form = ExperimentForm(request.POST or None)
+    form = ExperimentForm(request.POST or None,
+                          initial={"date": datetime.date.today()})
     if request.method == "POST" and form.is_valid():
         exp = form.save()
         return redirect("records:experiment_detail", pk=exp.pk)
@@ -249,7 +257,8 @@ def note_list(request):
 
 
 def note_create(request):
-    form = NoteForm(request.POST or None)
+    form = NoteForm(request.POST or None,
+                    initial={"date": datetime.date.today()})
     if request.method == "POST" and form.is_valid():
         form.save()
         return redirect("records:note_list")
@@ -382,6 +391,8 @@ def reading_create(request):
             messages.success(request, "openBD / Google Booksから書誌情報を取得しました")
         else:
             messages.warning(request, "ISBNから書誌情報を取得できませんでした。手入力してください")
+    if "read_date" not in initial:
+        initial["read_date"] = datetime.date.today()
     form = ReadingForm(request.POST or None, initial=initial)
     if request.method == "POST" and form.is_valid():
         form.save()
