@@ -1,0 +1,21 @@
+{% extends 'records/base.html' %}
+{% block content %}
+<h1>実験を比較</h1>
+<form method="get">
+{% for e in experiments %}
+<label><input type="checkbox" name="ids" value="{{ e.pk }}" {% if e in selected %}checked{% endif %}> {{ e.code }} {{ e.title }}</label><br>
+{% endfor %}
+<button type="submit">比較する</button>
+</form>
+{% if rows %}
+<table>
+<tr><th class="label">指標</th>{% for e in selected %}<th>{{ e.code }}</th>{% endfor %}</tr>
+{% for row in rows %}
+<tr><td class="label">{{ row.label }}</td>
+{% for v in row.values %}<td class="{% if v is not None and v == row.best %}best{% endif %}">{% if v is not None %}{{ v }}{% endif %}</td>{% endfor %}
+</tr>
+{% endfor %}
+</table>
+<p>太字・緑背景がその行の最大値です。</p>
+{% endif %}
+{% endblock %}

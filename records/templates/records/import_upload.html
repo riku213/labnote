@@ -1,0 +1,9 @@
+{% extends 'records/base.html' %}
+{% block content %}
+<h1>実験結果YAMLの取り込み</h1>
+<p>形式は docs/result_yaml.md を参照してください。アップロードすると、保存前に内容のプレビューを表示します。</p>
+<form method="post" enctype="multipart/form-data">
+{% csrf_token %}{{ form.as_p }}
+<button type="submit">アップロードしてプレビュー</button>
+</form>
+{% endblock %}

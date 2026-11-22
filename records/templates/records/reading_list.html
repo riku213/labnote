@@ -1,0 +1,15 @@
+{% extends 'records/base.html' %}
+{% block content %}
+<h1>読書記録（論文・本）</h1>
+<p><a href="{% url 'records:reading_create' %}">読書記録を追加</a></p>
+{% for r in readings %}
+<article>
+<h3>[{{ r.get_item_type_display }}] {{ r.title }}</h3>
+<p>{{ r.authors }}{% if r.year %}（{{ r.year }}）{% endif %} {{ r.venue }}
+{% if r.doi %} DOI: {{ r.doi }}{% endif %}{% if r.isbn %} ISBN: {{ r.isbn }}{% endif %}
+{% if r.read_date %} / 読んだ日: {{ r.read_date }}{% endif %}{% if r.rating %} / 評価: {{ r.rating }}/5{% endif %}</p>
+{% if r.summary %}<h4>要約</h4><pre>{{ r.summary }}</pre>{% endif %}
+{% if r.impression %}<h4>感想・メモ</h4><pre>{{ r.impression }}</pre>{% endif %}
+</article>
+{% empty %}<p>まだ読書記録がありません</p>{% endfor %}
+{% endblock %}

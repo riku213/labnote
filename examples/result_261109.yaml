@@ -1,0 +1,52 @@
+# 既存の記録（11/09 592次元固定ビット）をもとにしたサンプル
+experiment:
+  code: "261109"
+  title: "592ビット固定"
+  date: 2026-11-09
+  changes: "ビットごとの意味を固定する正解データ構造に変更"
+  discussion: "事前学習ではビット固定が有効だったが、くずし字では大きな効果は見られなかった。ただし未知クラスの文字種を前回と固定できていない点に注意。"
+conditions:
+  known_classes: "2568 / 4285"
+  unknown_classes: "859 / 4321"
+  samples: 27484
+results:
+  - stage: pretrain_casia
+    class_type: known
+    correction: none
+    gzsl: 90.42
+    zsl: 93.06
+  - stage: pretrain_casia
+    class_type: known
+    correction: component_calibrated
+    gzsl: 78.09
+    zsl: 94.43
+  - stage: pretrain_casia
+    class_type: unknown
+    correction: none
+    gzsl: 38.57
+    zsl: 52.99
+  - stage: pretrain_casia
+    class_type: unknown
+    correction: component_calibrated
+    gzsl: 58.08
+    zsl: 62.11
+  - stage: finetune_kuzushiji
+    class_type: known
+    correction: none
+    gzsl: 77.69
+    zsl: 78.56
+  - stage: finetune_kuzushiji
+    class_type: known
+    correction: component_calibrated
+    gzsl: 73.55
+    zsl: 84.07
+  - stage: finetune_kuzushiji
+    class_type: unknown
+    correction: none
+    gzsl: 16.56
+    zsl: 24.88
+  - stage: finetune_kuzushiji
+    class_type: unknown
+    correction: component_calibrated
+    gzsl: 31.79
+    zsl: 33.66

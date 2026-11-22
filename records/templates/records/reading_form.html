@@ -1,0 +1,12 @@
+{% extends 'records/base.html' %}
+{% block content %}
+<h1>読書記録を追加</h1>
+<form method="get">
+<p>DOIから論文を検索: <input type="text" name="doi" size="40" placeholder="10.xxxx/xxxxx"> <button type="submit">書誌を取得</button></p>
+<p>ISBNから本を検索: <input type="text" name="isbn" size="20" placeholder="978-4-..."> <button type="submit">書誌を取得</button></p>
+</form>
+<form method="post">
+{% csrf_token %}{{ form.as_p }}
+<button type="submit">保存</button>
+</form>
+{% endblock %}
