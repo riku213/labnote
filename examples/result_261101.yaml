@@ -1,31 +1,18 @@
-# 既存記録（タスク整理タブの概要表）をもとに作成。
-# この実験の詳細タブはドキュメントに無いため、概要表の値のみを収録。
-# 概要表は「未知クラス GZSL/ZSL、既知クラス GZSL」の3列のみで、
-# 補正の内訳は表に明記されていない。bag-of-component と calibrated stacking は
-# 11/05 の実験で導入されたため、この実験の値は補正なしとして解釈した。
 experiment:
-  code: "261101"
-  title: "ひらがな除外・補助損失BCE・augmentation・early stopping"
+  code: '261101'
+  title: ひらがな除外・補助損失BCE・augmentation・early stopping
   date: 2026-11-01
-  changes: "ひらがな除外、補助損失BCE、augmentation、early stopping"
-results:
-  - stage: pretrain_casia
-    class_type: unknown
-    correction: none
-    gzsl: 37.42
-    note: "概要表の値"
-  - stage: pretrain_casia
-    class_type: known
-    correction: none
-    gzsl: 95.13
-    note: "概要表に「CSなし」の注記あり"
-  - stage: finetune_kuzushiji
-    class_type: unknown
-    correction: none
-    gzsl: 7.90
-    note: "概要表の値"
-  - stage: finetune_kuzushiji
-    class_type: known
-    correction: none
-    gzsl: 97.25
-    note: "概要表の値"
+  changes: ひらがな除外、補助損失BCE、augmentation、early stopping
+metrics:
+- key: finetune_kuzushiji.unknown.none.gzsl
+  value: 7.9
+  note: 概要表の値
+- key: finetune_kuzushiji.known.none.gzsl
+  value: 97.25
+  note: 概要表の値
+- key: pretrain_casia.unknown.none.gzsl
+  value: 37.42
+  note: 概要表の値
+- key: pretrain_casia.known.none.gzsl
+  value: 95.13
+  note: 概要表に「CSなし」の注記あり

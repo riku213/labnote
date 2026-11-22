@@ -125,7 +125,7 @@ def export_all(out_dir):
     (out / "assets").mkdir(parents=True, exist_ok=True)
     count = 0
 
-    experiments = list(Experiment.objects.prefetch_related("metrics", "attachments"))
+    experiments = list(Experiment.objects.prefetch_related("values", "attachments"))
     index = ["# labnote 書き出し", "", "## 実験一覧", "",
              "| 日付 | ID | タイトル |", "|---|---|---|"]
     for e in experiments:

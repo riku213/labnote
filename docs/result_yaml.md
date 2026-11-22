@@ -1,60 +1,57 @@
-# 実験結果ファイル（result.yaml）の仕様
+# 実験結果 YAML 仕様（v2）
 
-実験コードの実行結果を labnote に取り込むための形式です。
-実験が終わったら、この形式の `result.yaml` を1ファイル出力し、labnote の
-「YAML取り込み」画面からアップロードしてください。取り込み時に形式チェックを行い、
-内容のプレビューを確認してから保存します。
+GitHub Copilot に実験結果をこの形式で出力させ、labnote の「YAML取り込み」からアップロードすると、実験条件・パラメータ・評価値が構造化されて登録されます。
 
 ## 形式
 
 ```yaml
 experiment:
-  code: "261109"          # 必須。実験ID（日付ベース等、一意な文字列）
-  title: "592ビット固定"   # 必須
-  date: 2026-11-09        # 必須
-  changes: "変更点の自由記述"        # 任意
-  background: "背景・問題意識"       # 任意
-  discussion: "結果の考察"          # 任意
-  memo: "メモ"                      # 任意
-  git_commit: "abc1234"             # 任意
-  checkpoint: "runs/261109/best.pth" # 任意（パス文字列のみ。実ファイルは含めない）
-  tags: "固定ビット, codebook"       # 任意（カンマ区切り、またはリスト）
-conditions:               # 任意。クラス数・サンプル数など。キー/値自由
-  known_classes: "2568 / 4285"
-  samples: 27484
-params:                   # 任意。学習パラメータ。キー/値自由
-  lr: 0.001
+  code: "261109"          # 実験ID（必須・一意）。同じIDで再取り込みすると更新される
+  title: "実験タイトル"    # 必須
+  date: 2026-11-09        # 必須（YYYY-MM-DD）
+  git_commit: "abc1234"   # 任意
+  checkpoint: "runs/xxx/best.pth"  # 任意
+  tags: "構造部首, ゼロショット"     # 任意（カンマ区切り）
+  background: |           # 任意
+    背景・問題意識
+  changes: |              # 任意
+    前回からの変更点
+  discussion: |           # 任意
+    結果の考察
+  memo: "自由メモ"         # 任意
+conditions:               # 任意。実験条件（自由なキー・値）
+  dataset: "くずし字"
+  known_classes: 2568
+params:                   # 任意。学習パラメータ（自由なキー・値）
   epochs: 50
-results:                  # 精度。組み合わせごとに1要素
-  - stage: pretrain_casia       # pretrain_casia | finetune_kuzushiji
-    class_type: unknown         # known | unknown
-    correction: component_calibrated  # none | component | component_calibrated
-    gzsl: 58.08                 # 任意（0〜100）。zslとどちらか一方は必須
-    zsl: 62.11                  # 任意（0〜100）
-    note: ""                    # 任意。値への注記
+  lr: 0.001
+metrics:                  # 評価値のリスト（下記参照）
+  - key: finetune_kuzushiji.known.none.gzsl
+    value: 77.69
 ```
 
-## 補正（correction）の意味と注意
+## 評価値（metrics）— 項目は固定ではありません
 
-- `none`: 補正なし
-- `component`: bag-of-component による component fusion のみ
-- `component_calibrated`: component fusion + calibrated stacking
+- `key`（必須）: 評価項目の識別子。英数字と `._-/` が使えます。**未知のキーは取り込み時に自動で評価項目として登録されます**。新しい評価軸（例: top-5 accuracy、検証ロス）が増えても、キーを増やすだけで対応できます。
+- `value`（必須）: 数値。
+- `label` / `group` / `unit`（任意）: 初回登録時の表示名・グループ名・単位（既定は %）。後から画面の「評価項目」ページでも変更できます。
+- `note`（任意）: その値への注記。
 
-calibrated stacking は ZSL には適用できません。そのため補正の値に
-「calibrated stacking のみ」は存在しません。`component_calibrated` の行の
-`zsl` は「component fusion を適用した ZSL の精度（calibrated stacking は
-適用されていない）」を表します。これは従来の手書き表で
-「component (+ calibrated)」列に GZSL と ZSL を並べて書いていた運用と同じ意味です。
+### 現在の標準キー（くずし字OCR実験）
 
-## Copilotへの指示文（例）
+`<stage>.<class>.<correction>.<metric>` の形を推奨します。
 
-実験コードを GitHub Copilot と開発している場合、次のような指示で
-学習・評価スクリプトに result.yaml の出力を組み込めます。
+- stage: `pretrain_casia`（事前学習） / `finetune_kuzushiji`（ファインチューニング）
+- class: `known`（既知クラス） / `unknown`（未知クラス）
+- correction: `none`（補正なし） / `component`（component fusion のみ） / `component_calibrated`（component fusion + calibrated stacking）
+- metric: `gzsl` / `zsl`
 
-> このリポジトリの評価が終わるタイミングで、labnote の仕様
-> （docs/result_yaml.md）に沿った result.yaml を実行ディレクトリに出力する処理を追加してください。
-> experiment.code は実行日の日付から作る実験ID、results には
-> stage（pretrain_casia / finetune_kuzushiji）× class_type（known / unknown）×
-> correction（none / component / component_calibrated）の各組み合わせについて
-> GZSL と ZSL の精度（%）を入れてください。値が無い組み合わせは要素ごと省略してください。
-> checkpoint には実ファイルではなくパスの文字列だけを入れてください。
+注意: **ZSL に calibrated stacking は適用されません**。`component_calibrated` の ZSL の値は component fusion のみの値として扱ってください。
+
+## 旧形式（v1）との互換
+
+旧形式の `results:` リスト（stage / class_type / correction / gzsl / zsl）も引き続き取り込めます。内部で上記の標準キーに変換されます。
+
+## Copilot への指示文（例）
+
+> 実験が終わったら、結果を labnote の result YAML 形式（v2）で result_<実験ID>.yaml に出力してください。metrics のキーは <stage>.<class>.<correction>.<metric> の形式で、値は小数第2位まで。新しい評価項目を使った場合は metrics に新しいキーを追加し、label と group も書いてください。
