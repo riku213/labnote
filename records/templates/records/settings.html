@@ -1,0 +1,18 @@
+{% extends 'records/base.html' %}
+{% block content %}
+<h1>設定</h1>
+<h2>テーマ（デザイン）</h2>
+<p class="lead">画面デザインのテーマを選べます。選択はこのブラウザに保存され、次回からも適用されます。</p>
+<form method="post">
+{% csrf_token %}
+{% for value, name, desc in themes %}
+<div class="candidate">
+<div class="info">
+<label style="font-size: 1.05rem;"><input type="radio" name="theme" value="{{ value }}" {% if value == current %}checked{% endif %}> {{ name }}</label>
+<p class="meta">{{ desc }}</p>
+</div>
+</div>
+{% endfor %}
+<p><button class="btn" type="submit">テーマを適用</button></p>
+</form>
+{% endblock %}

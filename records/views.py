@@ -10,6 +10,31 @@ from .importer import ImportError_, parse_result_yaml, save_result
 from .models import (Attachment, Experiment, MetricDefinition, Note, Reading)
 
 
+THEME_INFO = [
+    ("standard", "スタンダード", "今までのデザイン。デジタル庁デザインシステム（DADS）と Tufte 流の表組みを参考にした、装飾のない研究ノート風。"),
+    ("material", "Material（Google）", "Google の Material Design 3 風。紫系のテーマカラー、大きな角丸、ピル型ボタン、面の色調で階層を表す。"),
+    ("apple", "Apple", "Apple の Human Interface Guidelines 風。半透明でぼかしの効いたヘッダー、柔らかい影、大きな角丸、システムフォント。"),
+]
+
+
+def settings_view(request):
+    theme_keys = {t[0] for t in THEME_INFO}
+    current = request.COOKIES.get("labnote_theme", "standard")
+    if current not in theme_keys:
+        current = "standard"
+    if request.method == "POST":
+        chosen = request.POST.get("theme", "standard")
+        if chosen not in theme_keys:
+            chosen = "standard"
+        response = redirect("records:settings")
+        response.set_cookie("labnote_theme", chosen, max_age=60 * 60 * 24 * 365,
+                            samesite="Lax")
+        messages.success(request, "テーマを変更しました")
+        return response
+    return render(request, "records/settings.html",
+                  {"themes": THEME_INFO, "current": current})
+
+
 def home(request):
     context = {
         "experiments": Experiment.objects.all()[:10],

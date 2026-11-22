@@ -6,6 +6,7 @@ app_name = 'records'
 
 urlpatterns = [
     path('', views.home, name='home'),
+    path('settings/', views.settings_view, name='settings'),
     path('experiments/', views.experiment_list, name='experiment_list'),
     path('experiments/new/', views.experiment_create, name='experiment_create'),
     path('experiments/compare/', views.experiment_compare, name='experiment_compare'),

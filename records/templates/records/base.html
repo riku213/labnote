@@ -1,22 +1,50 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="ja" data-theme="{{ labnote_theme|default:'standard' }}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}labnote{% endblock %}</title>
-{% comment %}デザイン方針: デジタル庁デザインシステム(DADS)の色・余白・44pxタップ領域を参考にし、表は Tufte 流（罫線は最小限、縦罫なし、数値は右揃え＋等幅数字）に寄せた。グラデーション・影・装飾は使わない。{% endcomment %}
+{% comment %}テーマは「設定」画面で切り替え可能（Cookieに保存）。
+standard: デジタル庁デザインシステム(DADS)と Tufte 流の表組みを参考にした素朴なデザイン。
+material: Google Material Design 3 風（テーマカラー #6750A4、大きな角丸、ピル型ボタン、面の色調）。
+apple: Apple Human Interface Guidelines 風（半透明ヘッダー＋ぼかし、柔らかい影、大きな角丸）。{% endcomment %}
 <style>
-:root {
+:root, [data-theme="standard"] {
   --ink: #1a1a1c; --ink-2: #44464a; --line: #d9d9da; --line-soft: #ececec;
-  --blue: #0017c1; --blue-dark: #001078; --red: #b3261e; --bg-soft: #f5f5f4;
+  --blue: #0017c1; --blue-dark: #001078; --red: #b3261e; --bg: #fff; --bg-soft: #f5f5f4;
+  --card-bg: transparent; --header-bg: #fff; --header-blur: none;
+  --radius: 4px; --radius-sm: 4px; --btn-radius: 4px; --shadow: none;
+  --thumb: 150px; --font: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Noto Sans JP", sans-serif;
+  --candidate-pad: 0.9rem 0; --candidate-border: 1px solid var(--line-soft);
+}
+[data-theme="material"] {
+  --ink: #1d1b20; --ink-2: #49454f; --line: #cac4d0; --line-soft: #e6e0ee;
+  --blue: #6750a4; --blue-dark: #4f378b; --red: #b3261e; --bg: #fef7ff; --bg-soft: #f3edf7;
+  --card-bg: #f3edf7; --header-bg: #f3edf7;
+  --radius: 20px; --radius-sm: 12px; --btn-radius: 999px;
+  --shadow: 0 1px 2px rgba(0,0,0,.12), 0 4px 14px rgba(103,80,164,.10);
+  --thumb: 170px;
+  --candidate-pad: 1.1rem 1.2rem; --candidate-border: none;
+}
+[data-theme="apple"] {
+  --ink: #1d1d1f; --ink-2: #6e6e73; --line: #d2d2d7; --line-soft: #e8e8ed;
+  --blue: #0071e3; --blue-dark: #0060c9; --red: #d70015; --bg: #f5f5f7; --bg-soft: #fff;
+  --card-bg: #fff; --header-bg: rgba(251,251,253,.75); --header-blur: blur(14px);
+  --radius: 18px; --radius-sm: 10px; --btn-radius: 999px;
+  --shadow: 0 4px 18px rgba(0,0,0,.07);
+  --thumb: 170px; --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Noto Sans JP", sans-serif;
+  --candidate-pad: 1.1rem 1.2rem; --candidate-border: none;
 }
 * { box-sizing: border-box; }
-body { margin: 0; color: var(--ink); background: #fff;
-  font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Noto Sans JP", sans-serif;
+body { margin: 0; color: var(--ink); background: var(--bg);
+  font-family: var(--font);
   line-height: 1.8; font-size: 16px; }
 a { color: var(--blue); text-underline-offset: 3px; }
 a:hover { color: var(--blue-dark); }
-header.site { border-bottom: 1px solid var(--ink); }
+header.site { border-bottom: 1px solid var(--line); background: var(--header-bg);
+  backdrop-filter: var(--header-blur); -webkit-backdrop-filter: var(--header-blur);
+  position: sticky; top: 0; z-index: 10; }
+[data-theme="standard"] header.site { position: static; border-bottom-color: var(--ink); }
 header.site .inner { max-width: 1024px; margin: 0 auto; padding: 0.9rem 1rem 0.7rem;
   display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.4rem 1.6rem; }
 .site-title { font-size: 1.35rem; font-weight: 700; letter-spacing: 0.04em; }
@@ -26,25 +54,35 @@ nav.main a:hover { color: var(--blue); text-decoration: underline; text-underlin
 main { max-width: 1024px; margin: 0 auto; padding: 1.6rem 1rem 4rem; }
 h1 { font-size: 1.6rem; line-height: 1.4; margin: 0.4rem 0 1rem; }
 h2 { font-size: 1.2rem; margin: 2.2rem 0 0.6rem; padding-bottom: 0.25rem; border-bottom: 1px solid var(--ink); }
+[data-theme="material"] h2, [data-theme="apple"] h2 { border-bottom: none; }
 h3 { font-size: 1.05rem; margin: 1.6rem 0 0.4rem; }
 p.lead { color: var(--ink-2); }
 table { border-collapse: collapse; margin: 0.8rem 0 1.4rem; width: 100%;
   border-top: 2px solid var(--ink); border-bottom: 1px solid var(--ink); }
+[data-theme="material"] table, [data-theme="apple"] table {
+  border-top: none; border-bottom: none; background: var(--card-bg);
+  border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
 th, td { padding: 0.45rem 0.7rem; text-align: left; vertical-align: top; }
 thead th, tr.head th { border-bottom: 1px solid var(--ink); font-weight: 700; }
+[data-theme="material"] thead th, [data-theme="apple"] thead th { border-bottom: 1px solid var(--line); }
 tbody tr, tr.row { border-bottom: 1px solid var(--line-soft); }
 td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 td.best { font-weight: 700; }
 .note-cell { color: var(--ink-2); font-size: 0.9rem; }
 ul.plain { list-style: none; padding: 0; margin: 0.6rem 0; }
 ul.plain li { padding: 0.55rem 0; border-bottom: 1px solid var(--line-soft); }
+[data-theme="material"] ul.plain li, [data-theme="apple"] ul.plain li {
+  background: var(--card-bg); border-bottom: none; border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 0.7rem 1rem; margin: 0.5rem 0; }
 .meta { color: var(--ink-2); font-size: 0.92rem; }
 .btn { display: inline-block; background: var(--blue); color: #fff; border: 1px solid var(--blue);
-  padding: 0.55rem 1.2rem; border-radius: 4px; font-size: 1rem; cursor: pointer;
+  padding: 0.55rem 1.2rem; border-radius: var(--btn-radius); font-size: 1rem; cursor: pointer;
   text-decoration: none; min-height: 44px; line-height: 1.5; }
 .btn:hover { background: var(--blue-dark); color: #fff; }
-.btn.secondary { background: #fff; color: var(--blue); }
-.btn.secondary:hover { background: #eef1ff; }
+.btn.secondary { background: transparent; color: var(--blue); }
+[data-theme="material"] .btn.secondary { background: #eaddff; border-color: transparent; color: #21005d; }
+[data-theme="apple"] .btn.secondary { background: #e8e8ed; border-color: transparent; color: var(--ink); }
+.btn.secondary:hover { opacity: .85; }
 .btn.danger { background: var(--red); border-color: var(--red); }
 .btn.small { padding: 0.25rem 0.8rem; min-height: 36px; font-size: 0.9rem; }
 form p { margin: 0.9rem 0; }
@@ -52,33 +90,39 @@ label { font-weight: 700; font-size: 0.95rem; }
 input[type=text], input[type=number], input[type=date], input[type=url],
 input[type=file], select, textarea {
   display: block; width: 100%; max-width: 42rem; margin-top: 0.3rem;
-  padding: 0.55rem 0.7rem; border: 1px solid #767676; border-radius: 4px;
-  font: inherit; background: #fff; }
+  padding: 0.55rem 0.7rem; border: 1px solid #767676; border-radius: var(--radius-sm);
+  font: inherit; background: #fff; color: var(--ink); }
+[data-theme="material"] input, [data-theme="material"] select, [data-theme="material"] textarea,
+[data-theme="apple"] input, [data-theme="apple"] select, [data-theme="apple"] textarea { border-color: var(--line); }
 input:focus, select:focus, textarea:focus { outline: 2px solid var(--blue); outline-offset: 1px; }
 .helptext { color: var(--ink-2); font-size: 0.88rem; }
 .messages { list-style: none; padding: 0; margin: 0 0 1.2rem; }
 .messages li { background: var(--bg-soft); border-left: 4px solid var(--ink);
-  padding: 0.6rem 0.9rem; margin: 0.4rem 0; }
+  padding: 0.6rem 0.9rem; margin: 0.4rem 0; border-radius: var(--radius-sm); }
 .messages li.error { border-left-color: var(--red); }
 .messages li.warning { border-left-color: #b26a00; }
 pre.body { white-space: pre-wrap; font: inherit; background: none; padding: 0; margin: 0.4rem 0 1rem; }
 figure { margin: 1rem 0; }
-figure img.att { max-width: 100%; border: 1px solid var(--line); }
+figure img.att { max-width: 100%; border: 1px solid var(--line); border-radius: var(--radius-sm); }
 figcaption { color: var(--ink-2); font-size: 0.92rem; margin-top: 0.3rem; }
-.candidate { display: flex; gap: 1rem; padding: 0.9rem 0; border-bottom: 1px solid var(--line-soft); }
-.candidate img.cover { width: 80px; height: auto; align-self: flex-start; border: 1px solid var(--line); }
-.candidate .info { flex: 1; }
-footer.site { border-top: 1px solid var(--line); color: var(--ink-2); font-size: 0.88rem; }
-footer.site .inner { max-width: 1024px; margin: 0 auto; padding: 1rem; }
-.meter { background: var(--line-soft); height: 6px; margin-top: 4px; min-width: 90px; }
-.meter > span { display: block; height: 6px; background: var(--blue); }
+.candidate { display: flex; gap: 1.2rem; padding: var(--candidate-pad);
+  border-bottom: var(--candidate-border); background: var(--card-bg);
+  border-radius: var(--radius); box-shadow: var(--shadow); margin: 0.8rem 0; }
+[data-theme="standard"] .candidate { box-shadow: none; margin: 0; border-radius: 0; }
+.candidate img.cover { width: var(--thumb); height: auto; align-self: flex-start;
+  border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.candidate .info { flex: 1; min-width: 0; }
+.meter { background: var(--line-soft); height: 6px; margin-top: 4px; min-width: 90px; border-radius: 3px; }
+.meter > span { display: block; height: 6px; background: var(--blue); border-radius: 3px; }
 .bar-row { display: flex; align-items: center; gap: 0.7rem; margin: 0.25rem 0; }
 .bar-code { width: 5.5rem; text-align: right; font-variant-numeric: tabular-nums; color: var(--ink-2); font-size: 0.92rem; }
-.bar-track { flex: 1; background: var(--line-soft); height: 18px; }
-.bar-fill { height: 18px; }
+.bar-track { flex: 1; background: var(--line-soft); height: 18px; border-radius: var(--radius-sm); }
+.bar-fill { height: 18px; border-radius: var(--radius-sm); }
 .bar-value { width: 6.5rem; font-variant-numeric: tabular-nums; font-size: 0.95rem; }
 .chart-block { margin: 1.2rem 0 1.8rem; }
 .chart-block h3 { margin-bottom: 0.4rem; border: none; }
+footer.site { border-top: 1px solid var(--line); color: var(--ink-2); font-size: 0.88rem; }
+footer.site .inner { max-width: 1024px; margin: 0 auto; padding: 1rem; }
 </style>
 </head>
 <body>
@@ -91,6 +135,7 @@ footer.site .inner { max-width: 1024px; margin: 0 auto; padding: 1rem; }
 <a href="{% url 'records:definition_list' %}">評価項目</a>
 <a href="{% url 'records:note_list' %}">ノート</a>
 <a href="{% url 'records:reading_list' %}">読書記録</a>
+<a href="{% url 'records:settings' %}">設定</a>
 </nav>
 </div></header>
 <main>

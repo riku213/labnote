@@ -148,3 +148,23 @@ class ReadingImageTest(TestCase):
         self.assertContains(resp, "画像つき論文")
         resp = self.client.get(f"/readings/{r.pk}/")
         self.assertContains(resp, "図1")
+
+
+class ThemeTest(TestCase):
+    def test_default_theme_is_standard(self):
+        resp = self.client.get("/")
+        self.assertContains(resp, 'data-theme="standard"')
+
+    def test_theme_switch_via_settings(self):
+        resp = self.client.post("/settings/", {"theme": "material"})
+        self.assertEqual(resp.status_code, 302)
+        resp = self.client.get("/")
+        self.assertContains(resp, 'data-theme="material"')
+        resp = self.client.post("/settings/", {"theme": "apple"})
+        resp = self.client.get("/")
+        self.assertContains(resp, 'data-theme="apple"')
+
+    def test_invalid_theme_falls_back(self):
+        self.client.cookies.load({"labnote_theme": "bogus"})
+        resp = self.client.get("/")
+        self.assertContains(resp, 'data-theme="standard"')
