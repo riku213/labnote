@@ -30,3 +30,6 @@ runs/
 .DS_Store
 .idea/
 .vscode/
+
+# 書き出し結果（研究記録の写し。Driveアップロード用）
+export/
