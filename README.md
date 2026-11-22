@@ -22,3 +22,15 @@ python manage.py runserver
 
 ## 注意
 このリポジトリは公開前提です。APIキーや研究データ本体は `.gitignore` で除外しています。秘密情報は絶対にコミットしないでください。
+
+## APIキー（任意）
+
+キーなしでも動きます（論文検索は Crossref、本の検索は国立国会図書館サーチへ自動で切り替わります）。ただし共有IP等で無償枠を使い切ると検索が不安定になるため、自分のキーを登録すると安定します。
+
+1. `.env.example` を `.env` にコピーする（`.env` は .gitignore 済みで、GitHubには上がりません）
+2. 取得したキーを `.env` に書く
+   - OpenAlex: https://openalex.org/settings/api （アカウント登録後に発行）
+   - Google Books: Google Cloud Console でプロジェクトを作り、「Books API」を有効化して「認証情報」からAPIキーを作成
+3. アプリを再起動する
+
+キーをチャットやGitHubに貼らないでください。
