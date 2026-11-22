@@ -28,10 +28,22 @@ def experiment_list(request):
 
 
 def _grouped_values(experiment):
-    """詳細画面用: グループ名 -> [(定義, 値), ...] のリスト（順序つき）。"""
+    """詳細画面用: グループ名 -> 値リスト。各値にグラフ表示用のバー幅(%)を持たせる。
+
+    単位が % の項目は 0-100 を尺度にし、それ以外はグループ内の最大値を尺度にする。
+    """
     groups = {}
     for v in experiment.values.select_related("definition").all():
         groups.setdefault(v.definition.group or "その他", []).append(v)
+    for values in groups.values():
+        group_max = max((v.value for v in values), default=0)
+        for v in values:
+            if v.definition.unit == "%" and 0 <= v.value <= 100:
+                v.bar_width = v.value
+            elif group_max > 0 and v.value >= 0:
+                v.bar_width = v.value / group_max * 100
+            else:
+                v.bar_width = None
     return groups
 
 
@@ -80,12 +92,25 @@ def experiment_compare(request):
                 definitions[v.definition_id] = v.definition
         ordered = sorted(definitions.values(),
                          key=lambda d: (d.group, d.sort_order, d.key))
+        palette = ["#0017c1", "#d55e00", "#009e73", "#cc79a7", "#56b4e9", "#b26a00"]
         for d in ordered:
             values = [lookup.get((e.pk, d.pk)) for e in selected]
             if any(v is not None for v in values):
+                present = [v for v in values if v is not None]
+                if d.unit == "%" and all(0 <= v <= 100 for v in present):
+                    scale = 100.0
+                else:
+                    scale = max(present) if present else 0
+                bars = []
+                for i, (e, v) in enumerate(zip(selected, values)):
+                    if v is None:
+                        continue
+                    width = (v / scale * 100) if scale and v >= 0 else 0
+                    bars.append({"code": e.code, "value": v, "width": width,
+                                 "color": palette[i % len(palette)]})
                 rows.append({
                     "definition": d, "values": values,
-                    "best": max((v for v in values if v is not None), default=None),
+                    "best": max(present, default=None), "bars": bars,
                 })
     return render(request, "records/experiment_compare.html", {
         "experiments": experiments, "selected": selected, "rows": rows})

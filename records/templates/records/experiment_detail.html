@@ -14,7 +14,7 @@
 <tbody>
 {% for v in values %}
 <tr><td>{{ v.definition.display_label }}</td>
-<td class="num">{{ v.value|floatformat:"-2" }}{{ v.definition.unit }}</td>
+<td class="num">{{ v.value|floatformat:"-2" }}{{ v.definition.unit }}{% if v.bar_width is not None %}<div class="meter"><span style="width: {{ v.bar_width|stringformat:'.1f' }}%"></span></div>{% endif %}</td>
 <td class="note-cell">{{ v.note }}</td></tr>
 {% endfor %}
 </tbody>

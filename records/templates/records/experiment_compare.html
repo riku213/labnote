@@ -23,5 +23,18 @@
 </tbody>
 </table>
 <p class="meta">太字がその行の最大値です。</p>
+<h2>グラフ</h2>
+{% regroup rows by definition.group as chart_groups %}
+{% for g in chart_groups %}
+<h3>{{ g.grouper|default:"その他" }}</h3>
+{% for row in g.list %}
+<div class="chart-block">
+<div><strong>{{ row.definition.display_label }}</strong>{% if row.definition.unit %}（単位: {{ row.definition.unit }}）{% endif %}</div>
+{% for b in row.bars %}
+<div class="bar-row"><span class="bar-code">{{ b.code }}</span><div class="bar-track"><div class="bar-fill" style="width: {{ b.width|stringformat:'.1f' }}%; background: {{ b.color }};"></div></div><span class="bar-value">{{ b.value|floatformat:"-2" }}{{ row.definition.unit }}</span></div>
+{% endfor %}
+</div>
+{% endfor %}
+{% endfor %}
 {% endif %}
 {% endblock %}
