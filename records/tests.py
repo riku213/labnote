@@ -184,3 +184,53 @@ class MoreThemesAndDateTest(TestCase):
         self.assertContains(self.client.get("/experiments/new/"), f'value="{today}"')
         self.assertContains(self.client.get("/readings/new/"), f'value="{today}"')
         self.assertContains(self.client.get("/notes/new/"), f'value="{today}"')
+
+
+class ExperimentEditTest(TestCase):
+    def setUp(self):
+        self.exp = save_result(parse_result_yaml(V2))
+        self.url = f"/experiments/{self.exp.pk}/edit/"
+
+    def _post_data(self, **overrides):
+        values = list(self.exp.values.all())
+        data = {
+            "code": self.exp.code, "title": "編集後のタイトル",
+            "date": "2026-01-02",
+            "values-TOTAL_FORMS": str(len(values) + 1),
+            "values-INITIAL_FORMS": str(len(values)),
+            "values-MIN_NUM_FORMS": "0", "values-MAX_NUM_FORMS": "1000",
+        }
+        for i, v in enumerate(values):
+            data[f"values-{i}-id"] = str(v.pk)
+            data[f"values-{i}-definition"] = str(v.definition_id)
+            data[f"values-{i}-value"] = str(v.value)
+            data[f"values-{i}-note"] = v.note
+        data.update(overrides)
+        return data
+
+    def test_edit_title_and_value(self):
+        data = self._post_data()
+        data["values-0-value"] = "99.9"
+        resp = self.client.post(self.url, data)
+        self.assertEqual(resp.status_code, 302)
+        self.exp.refresh_from_db()
+        self.assertEqual(self.exp.title, "編集後のタイトル")
+        self.assertEqual(self.exp.values.first().value, 99.9)
+
+    def test_add_and_delete_value(self):
+        values = list(self.exp.values.all())
+        data = self._post_data()
+        # 1件削除
+        data[f"values-0-DELETE"] = "on"
+        # 末尾の空行に新規追加
+        from .models import MetricDefinition
+        d = MetricDefinition.objects.create(key="new.metric", label="新規")
+        i = len(values)
+        data[f"values-{i}-definition"] = str(d.pk)
+        data[f"values-{i}-value"] = "12.5"
+        data[f"values-{i}-note"] = ""
+        resp = self.client.post(self.url, data)
+        self.assertEqual(resp.status_code, 302)
+        keys = set(self.exp.values.values_list("definition__key", flat=True))
+        self.assertIn("new.metric", keys)
+        self.assertEqual(self.exp.values.count(), len(values))

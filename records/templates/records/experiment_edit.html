@@ -1,0 +1,29 @@
+{% extends 'records/base.html' %}
+{% block content %}
+<h1>実験を編集: {{ experiment.code }} {{ experiment.title }}</h1>
+<form method="post">
+{% csrf_token %}
+<h2>基本情報</h2>
+{{ form.as_p }}
+<h2>評価値</h2>
+<p class="meta">値を書き換えると上書きされます。「削除」にチェックを入れた行は保存時に消えます。最後の空行に新しい評価項目と値を入れると追加されます。新しい評価項目そのものを作る場合は<a href="{% url 'records:definition_list' %}">評価項目の管理</a>からどうぞ。</p>
+{{ formset.management_form }}
+<table>
+<thead><tr><th>評価項目</th><th>値</th><th>注記</th><th>削除</th></tr></thead>
+<tbody>
+{% for f in formset %}
+<tr>
+<td>{{ f.definition }}{{ f.id }}</td>
+<td>{{ f.value }}</td>
+<td>{{ f.note }}</td>
+<td>{{ f.DELETE }}</td>
+</tr>
+{% if f.errors %}<tr><td colspan="4">{{ f.errors }}</td></tr>{% endif %}
+{% endfor %}
+</tbody>
+</table>
+{% if formset.non_form_errors %}<p>{{ formset.non_form_errors }}</p>{% endif %}
+<button class="btn" type="submit">保存</button>
+<a class="btn secondary" href="{% url 'records:experiment_detail' experiment.pk %}">キャンセル</a>
+</form>
+{% endblock %}

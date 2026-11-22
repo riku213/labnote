@@ -5,6 +5,7 @@
 {% if experiment.git_commit %} ／ commit: {{ experiment.git_commit }}{% endif %}
 {% if experiment.checkpoint %} ／ checkpoint: {{ experiment.checkpoint }}{% endif %}
 {% if experiment.tags %} ／ タグ: {{ experiment.tags }}{% endif %}</p>
+<p><a class="btn secondary" href="{% url 'records:experiment_edit' experiment.pk %}">この実験を編集</a></p>
 
 <h2>評価</h2>
 {% for group, values in grouped_values.items %}

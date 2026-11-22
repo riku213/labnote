@@ -11,6 +11,7 @@ urlpatterns = [
     path('experiments/new/', views.experiment_create, name='experiment_create'),
     path('experiments/compare/', views.experiment_compare, name='experiment_compare'),
     path('experiments/<int:pk>/', views.experiment_detail, name='experiment_detail'),
+    path('experiments/<int:pk>/edit/', views.experiment_edit, name='experiment_edit'),
     path('attachments/<int:pk>/delete/', views.attachment_delete, name='attachment_delete'),
     path('definitions/', views.definition_list, name='definition_list'),
     path('definitions/<int:pk>/edit/', views.definition_edit, name='definition_edit'),

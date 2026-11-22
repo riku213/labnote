@@ -100,6 +100,35 @@ def experiment_detail(request, pk):
     return render(request, "records/experiment_detail.html", context)
 
 
+def experiment_edit(request, pk):
+    """実験の基本情報と評価値を編集する。評価値の追加・変更・削除もここで行う。"""
+    from django.forms import modelformset_factory
+    from .models import MetricValue
+    experiment = get_object_or_404(Experiment, pk=pk)
+    ValueFormSet = modelformset_factory(
+        MetricValue, fields=["definition", "value", "note"],
+        extra=1, can_delete=True)
+    if request.method == "POST":
+        form = ExperimentForm(request.POST, instance=experiment)
+        formset = ValueFormSet(request.POST,
+                               queryset=experiment.values.all(), prefix="values")
+        if form.is_valid() and formset.is_valid():
+            form.save()
+            instances = formset.save(commit=False)
+            for obj in instances:
+                obj.experiment = experiment
+                obj.save()
+            for obj in formset.deleted_objects:
+                obj.delete()
+            messages.success(request, "実験を更新しました")
+            return redirect("records:experiment_detail", pk=pk)
+    else:
+        form = ExperimentForm(instance=experiment)
+        formset = ValueFormSet(queryset=experiment.values.all(), prefix="values")
+    return render(request, "records/experiment_edit.html", {
+        "form": form, "formset": formset, "experiment": experiment})
+
+
 def experiment_create(request):
     form = ExperimentForm(request.POST or None,
                           initial={"date": datetime.date.today()})
