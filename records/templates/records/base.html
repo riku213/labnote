@@ -98,5 +98,27 @@ footer.site .inner { max-width: 1024px; margin: 0 auto; padding: 1rem; }
 {% block content %}{% endblock %}
 </main>
 <footer class="site"><div class="inner">labnote — 研究の実験管理と記録</div></footer>
+<script>
+// クリップボードの画像を Ctrl+V / ⌘V で貼り付けると、対象フォームに添付して送信する
+document.addEventListener('paste', function (e) {
+  var form = document.querySelector('form.paste-target');
+  if (!form) return;
+  var input = form.querySelector('input[type="file"]');
+  if (!input) return;
+  var items = (e.clipboardData || {}).items || [];
+  for (var i = 0; i < items.length; i++) {
+    if (items[i].type.indexOf('image/') === 0) {
+      var file = items[i].getAsFile();
+      if (!file) continue;
+      var dt = new DataTransfer();
+      dt.items.add(file);
+      input.files = dt.files;
+      e.preventDefault();
+      form.submit();
+      return;
+    }
+  }
+});
+</script>
 </body>
 </html>

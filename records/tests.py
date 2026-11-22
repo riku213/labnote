@@ -127,3 +127,24 @@ class ReadingFeatureTest(TestCase):
         resp = self.client.get("/readings/stats/")
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, "2 件")
+
+
+class ReadingImageTest(TestCase):
+    def test_attach_paste_flow_and_thumbnail(self):
+        import datetime
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from .models import Reading
+        r = Reading.objects.create(item_type="paper", title="画像つき論文",
+                                   read_date=datetime.date(2026, 11, 20))
+        import io
+        from PIL import Image
+        buf = io.BytesIO()
+        Image.new("RGB", (8, 8), (255, 0, 0)).save(buf, format="PNG")
+        png = SimpleUploadedFile("shot.png", buf.getvalue(), content_type="image/png")
+        resp = self.client.post(f"/readings/{r.pk}/", {"image": png, "caption": "図1"})
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(r.attachments.count(), 1)
+        resp = self.client.get("/readings/")
+        self.assertContains(resp, "画像つき論文")
+        resp = self.client.get(f"/readings/{r.pk}/")
+        self.assertContains(resp, "図1")

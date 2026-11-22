@@ -1,0 +1,26 @@
+{% extends 'records/base.html' %}
+{% block content %}
+<h1>[{{ reading.get_item_type_display }}] {{ reading.title }}</h1>
+<p class="meta">{{ reading.authors }}{% if reading.year %}（{{ reading.year }}）{% endif %} {{ reading.venue }}
+{% if reading.doi %} ／ DOI: {{ reading.doi }}{% endif %}{% if reading.isbn %} ／ ISBN: {{ reading.isbn }}{% endif %}
+{% if reading.url %} ／ <a href="{{ reading.url }}">リンク</a>{% endif %}</p>
+<p class="meta">{% if reading.read_date %}読んだ日: {{ reading.read_date }}{% endif %}
+{% if reading.rating %} ／ 評価: {{ reading.rating }}/5{% endif %}
+{% if reading.tags %} ／ タグ: {{ reading.tags }}{% endif %}</p>
+{% if reading.summary %}<h2>要約</h2><pre class="body">{{ reading.summary }}</pre>{% endif %}
+{% if reading.impression %}<h2>感想・メモ</h2><pre class="body">{{ reading.impression }}</pre>{% endif %}
+<p><a class="btn secondary" href="{% url 'records:reading_edit' reading.pk %}">編集する</a></p>
+
+<h2>添付画像</h2>
+<p class="meta">スクリーンショットは、このページで Ctrl+V（Macは ⌘V）を押すだけで貼り付けできます。</p>
+{% for a in reading.attachments.all %}
+<figure>
+<img class="att" src="{{ a.image.url }}" alt="{{ a.caption }}">
+<figcaption>{{ a.caption }}　<a href="{% url 'records:attachment_delete' a.pk %}">この画像を削除</a></figcaption>
+</figure>
+{% empty %}<p>添付画像はまだありません</p>{% endfor %}
+<form method="post" enctype="multipart/form-data" class="paste-target">
+{% csrf_token %}{{ attachment_form.as_p }}
+<button class="btn" type="submit">画像を添付</button>
+</form>
+{% endblock %}

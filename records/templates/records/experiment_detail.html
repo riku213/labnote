@@ -36,13 +36,14 @@
 {% if experiment.memo %}<h2>メモ</h2><pre class="body">{{ experiment.memo }}</pre>{% endif %}
 
 <h2>添付画像</h2>
+<p class="meta">スクリーンショットは、このページで Ctrl+V（Macは ⌘V）を押すだけで貼り付けできます。</p>
 {% for a in experiment.attachments.all %}
 <figure>
 <img class="att" src="{{ a.image.url }}" alt="{{ a.caption }}">
 <figcaption>{{ a.caption }}　<a href="{% url 'records:attachment_delete' a.pk %}">この画像を削除</a></figcaption>
 </figure>
 {% empty %}<p>添付画像はまだありません</p>{% endfor %}
-<form method="post" enctype="multipart/form-data">
+<form method="post" enctype="multipart/form-data" class="paste-target">
 {% csrf_token %}{{ attachment_form.as_p }}
 <button class="btn" type="submit">画像を添付</button>
 </form>

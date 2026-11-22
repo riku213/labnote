@@ -19,6 +19,7 @@ urlpatterns = [
     path('notes/new/', views.note_create, name='note_create'),
     path('readings/', views.reading_list, name='reading_list'),
     path('readings/stats/', views.reading_stats, name='reading_stats'),
+    path('readings/<int:pk>/', views.reading_detail, name='reading_detail'),
     path('readings/<int:pk>/edit/', views.reading_edit, name='reading_edit'),
     path('readings/search/', views.reading_search, name='reading_search'),
     path('readings/new/', views.reading_create, name='reading_create'),

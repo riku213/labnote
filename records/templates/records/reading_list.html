@@ -20,15 +20,15 @@
 <p class="meta">{{ readings|length }} 件</p>
 {% for r in readings %}
 <div class="candidate">
-{% if r.cover_url %}<img class="cover" src="{{ r.cover_url }}" alt="表紙">{% endif %}
+{% if r.cover_url %}<img class="cover" src="{{ r.cover_url }}" alt="表紙">{% elif r.attachments.first %}<img class="cover" src="{{ r.attachments.first.image.url }}" alt="添付画像">{% endif %}
 <div class="info">
-<h3 style="margin-top:0;">[{{ r.get_item_type_display }}] {{ r.title }}</h3>
+<h3 style="margin-top:0;">[{{ r.get_item_type_display }}] <a href="{% url 'records:reading_detail' r.pk %}">{{ r.title }}</a></h3>
 <p class="meta">{{ r.authors }}{% if r.year %}（{{ r.year }}）{% endif %} {{ r.venue }}
 {% if r.doi %} ／ DOI: {{ r.doi }}{% endif %}{% if r.isbn %} ／ ISBN: {{ r.isbn }}{% endif %}
 {% if r.read_date %} ／ 読んだ日: {{ r.read_date }}{% endif %}{% if r.rating %} ／ 評価: {{ r.rating }}/5{% endif %}</p>
 {% if r.summary %}<h4>要約</h4><pre class="body">{{ r.summary }}</pre>{% endif %}
 {% if r.impression %}<h4>感想・メモ</h4><pre class="body">{{ r.impression }}</pre>{% endif %}
-<p><a href="{% url 'records:reading_edit' r.pk %}">編集する</a></p>
+<p><a href="{% url 'records:reading_detail' r.pk %}">詳細・画像</a>　<a href="{% url 'records:reading_edit' r.pk %}">編集する</a></p>
 </div>
 </div>
 {% empty %}<p>条件に合う読書記録がありません</p>{% endfor %}

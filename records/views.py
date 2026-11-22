@@ -123,6 +123,8 @@ def attachment_delete(request, pk):
     back_pk = None
     if attachment.experiment_id:
         back, back_pk = "records:experiment_detail", attachment.experiment_id
+    elif attachment.reading_id:
+        back, back_pk = "records:reading_detail", attachment.reading_id
     if request.method == "POST":
         attachment.image.delete(save=False)
         attachment.delete()
@@ -253,6 +255,23 @@ def reading_list(request):
     return render(request, "records/reading_list.html", {
         "readings": readings, "item_type": item_type,
         "sort": sort, "sorts": SORTS})
+
+
+def reading_detail(request, pk):
+    reading = get_object_or_404(
+        Reading.objects.prefetch_related("attachments"), pk=pk)
+    if request.method == "POST":
+        form = AttachmentForm(request.POST, request.FILES)
+        if form.is_valid():
+            att = form.save(commit=False)
+            att.reading = reading
+            att.save()
+            messages.success(request, "画像を添付しました")
+            return redirect("records:reading_detail", pk=pk)
+    else:
+        form = AttachmentForm()
+    return render(request, "records/reading_detail.html",
+                  {"reading": reading, "attachment_form": form})
 
 
 def reading_edit(request, pk):
